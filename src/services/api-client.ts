@@ -1,5 +1,5 @@
 // API Client for making HTTP requests to backend (embed: Bearer + CSRF)
-import { API_BASE_URL } from '@/lib/config';
+import { API_BASE_URL, apiTunnelHeaders } from '@/lib/config';
 import { ApiError, ApiErrorType } from './api-error';
 import { getStoredAuthToken } from '@/lib/embed-session';
 
@@ -39,7 +39,9 @@ class ApiClient {
     }
 
     try {
-      const headers: HeadersInit = {};
+      const headers: HeadersInit = {
+        ...apiTunnelHeaders(),
+      };
       const authToken = this.getAuthToken();
       if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
@@ -69,6 +71,7 @@ class ApiClient {
   private buildHeaders(options: RequestInit, csrfToken: string | null, isStateChanging: boolean): HeadersInit {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      ...apiTunnelHeaders(),
       ...(options.headers || {}),
     };
 
@@ -211,7 +214,9 @@ class ApiClient {
       csrfToken = await this.ensureCsrfToken();
     }
 
-    const headers: HeadersInit = {};
+    const headers: HeadersInit = {
+      ...apiTunnelHeaders(),
+    };
     if (csrfToken) {
       headers['X-CSRF-Token'] = csrfToken;
     }

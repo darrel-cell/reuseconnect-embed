@@ -1,6 +1,6 @@
 // Documents Service
 import { apiClient } from './api-client';
-import { API_BASE_URL } from '@/lib/config';
+import { API_BASE_URL, apiTunnelHeaders } from '@/lib/config';
 
 export interface Document {
   id: string;
@@ -101,6 +101,9 @@ class DocumentsService {
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'include', // Include httpOnly cookie (auth_token) automatically
+        headers: {
+          ...apiTunnelHeaders(),
+        },
       });
 
       if (!response.ok) {

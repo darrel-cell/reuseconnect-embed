@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/lib/config';
+import { API_BASE_URL, apiTunnelHeaders } from '@/lib/config';
 import type { User } from '@/types/auth';
 import type { EmbedPartnerInfo } from '@/lib/embed-session';
 
@@ -28,7 +28,10 @@ export const embedService = {
   async exchangeToken(token: string, parentOrigin?: string | null): Promise<EmbedExchangeResult> {
     const response = await fetch(`${API_BASE_URL}/embed/exchange`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...apiTunnelHeaders(),
+      },
       credentials: 'include',
       body: JSON.stringify({
         token,
@@ -41,6 +44,9 @@ export const embedService = {
   async getPartner(slug: string): Promise<EmbedPartnerPublic> {
     const response = await fetch(`${API_BASE_URL}/embed/partners/${encodeURIComponent(slug)}`, {
       method: 'GET',
+      headers: {
+        ...apiTunnelHeaders(),
+      },
       credentials: 'include',
     });
     return parseJson<EmbedPartnerPublic>(response);
