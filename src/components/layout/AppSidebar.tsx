@@ -5,7 +5,6 @@ import {
   Leaf, 
   FileText, 
   Settings,
-  LogOut,
   Building2,
   Users,
   ClipboardList,
@@ -28,18 +27,6 @@ import { useTenantTheme } from "@/contexts/TenantThemeContext";
 import { useClientProfile } from "@/hooks/useClients";
 import { useOrganisationProfile } from "@/hooks/useOrganisationProfile";
 import { getReferralLogoUrl } from "@/utils/referral-logo-url";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import {
   Sidebar,
   SidebarContent,
@@ -105,47 +92,6 @@ const formatRoleLabel = (role: string) => {
 const bottomNavItems = [
   { title: "Settings", url: "/settings", icon: Settings, roles: ['admin', 'head_of_operation', 'client', 'partner', 'driver', 'warehouse_technician'] },
 ];
-
-// Logout Button with Confirmation
-function LogoutButton({ isCollapsed }: { isCollapsed: boolean }) {
-  const { logout } = useAuth();
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <SidebarMenuButton
-          tooltip="Logout"
-          className={cn(
-            "rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-            isCollapsed
-              ? "!h-8 !min-h-8 !w-8 !min-w-8 justify-center p-0 [&>svg]:!size-4"
-              : "h-11 w-full justify-start"
-          )}
-        >
-          <LogOut className="transition-all duration-200 flex-shrink-0 h-5 w-5" />
-          {!isCollapsed && <span className="font-medium ml-3">Logout</span>}
-        </SidebarMenuButton>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to end this session? You can reopen the portal from your partner website.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => logout()}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            Logout
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
 
 function AppSidebar() {
   const location = useLocation();
@@ -416,9 +362,6 @@ function AppSidebar() {
                     </div>
                   </div>
                 )}
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <LogoutButton isCollapsed={isCollapsed} />
               </SidebarMenuItem>
             </>
           )}
