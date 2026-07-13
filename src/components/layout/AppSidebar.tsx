@@ -26,7 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTenantTheme } from "@/contexts/TenantThemeContext";
 import { useClientProfile } from "@/hooks/useClients";
 import { useOrganisationProfile } from "@/hooks/useOrganisationProfile";
-import { getReferralLogoUrl } from "@/utils/referral-logo-url";
+import { useReferralLogoSrc } from "@/hooks/useReferralLogoSrc";
 import {
   Sidebar,
   SidebarContent,
@@ -104,7 +104,8 @@ function AppSidebar() {
   const contentRef = useRef<HTMLDivElement>(null);
   const [hasOverflowAbove, setHasOverflowAbove] = useState(false);
   const [hasOverflowBelow, setHasOverflowBelow] = useState(false);
-  const partnerLogoSrc = getReferralLogoUrl(partner?.logoUrl) || logo || '/logo.avif';
+  const resolvedPartnerLogo = useReferralLogoSrc(partner?.logoUrl);
+  const partnerLogoSrc = resolvedPartnerLogo || logo || '/logo.avif';
   const brandTitle = partner?.displayName || 'Partner portal';
 
   const getPathMatchScore = (path: string) => {

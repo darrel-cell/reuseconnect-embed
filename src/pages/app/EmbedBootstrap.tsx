@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { embedService } from '@/services/embed.service';
-import { getReferralLogoUrl } from '@/utils/referral-logo-url';
+import { useReferralLogoSrc } from '@/hooks/useReferralLogoSrc';
 import { ApiError } from '@/services/api-error';
 
 export default function EmbedBootstrap() {
@@ -16,6 +16,7 @@ export default function EmbedBootstrap() {
     displayName: string;
     logoUrl: string | null;
   } | null>(null);
+  const logoSrc = useReferralLogoSrc(branding?.logoUrl || partner?.logoUrl);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +77,6 @@ export default function EmbedBootstrap() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  const logoSrc = getReferralLogoUrl(branding?.logoUrl || partner?.logoUrl);
   const title = branding?.displayName || partner?.displayName || 'Partner portal';
 
   if (error) {
