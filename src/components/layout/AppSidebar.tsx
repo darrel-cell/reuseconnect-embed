@@ -7,7 +7,6 @@ import {
   Building2,
   Users,
   ClipboardList,
-  Handshake,
   Clock,
   Route as RouteIcon,
   MapPin,
@@ -43,7 +42,7 @@ const SteeringWheelIcon = ({ className }: { className?: string }) => {
 };
 
 // Role-based navigation items
-const getMainNavItems = (role: string, isSuperAdmin?: boolean) => {
+const getMainNavItems = (role: string) => {
   const baseItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ['admin', 'head_of_operation', 'client', 'partner', 'driver', 'warehouse_technician'] },
     { title: "New Booking", url: "/booking", icon: Plus, roles: ['admin', 'head_of_operation', 'client'] },
@@ -60,15 +59,11 @@ const getMainNavItems = (role: string, isSuperAdmin?: boolean) => {
     { title: "Drivers", url: "/admin/drivers", icon: SteeringWheelIcon, roles: ['admin', 'head_of_operation'] },
     { title: "Vehicles", url: "/admin/vehicles", icon: Truck, roles: ['admin', 'head_of_operation'] },
     { title: "CO₂e Overview", url: "/co2e", icon: Leaf, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
-    { title: "organisation", url: "/co2e?view=organisation", icon: Building2, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
+    { title: "Organisation", url: "/co2e?view=organisation", icon: Building2, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
     { title: "User", url: "/co2e?view=user", icon: Users, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
     { title: "Serial Number", url: "/co2e?view=serial", icon: Package, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
     { title: "Documents", url: "/documents", icon: FileText, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
   ];
-  if (isSuperAdmin) {
-    baseItems.push({ title: "Audit Logs", url: "/audit-logs", icon: ClipboardList, roles: ['admin', 'head_of_operation'] });
-    baseItems.push({ title: "Referral Partners", url: "/referral-partners", icon: Handshake, roles: ['admin', 'head_of_operation'] });
-  }
   
   return baseItems.filter(item => item.roles.includes(role));
 };
@@ -102,7 +97,7 @@ function AppSidebar() {
     }
   };
 
-  const mainNavItems = user ? getMainNavItems(user.role, user.isSuperAdmin) : [];
+  const mainNavItems = user ? getMainNavItems(user.role) : [];
   const co2NavItems = mainNavItems.filter(item => item.url.startsWith('/co2e'));
   const primaryNavItems = mainNavItems.filter(item => !item.url.startsWith('/co2e'));
   const allNavUrls = useMemo(
