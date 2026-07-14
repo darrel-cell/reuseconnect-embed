@@ -14,9 +14,6 @@ import {
 } from "@/components/ui/popover";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDriver } from "@/hooks/useDrivers";
-import { useClientProfile } from "@/hooks/useClients";
-import { useOrganisationProfileComplete } from "@/hooks/useOrganisationProfile";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -26,7 +23,6 @@ const pageTitles: Record<string, string> = {
   "/jobs/history": "Job History",
   "/co2e": "CO₂e Dashboard",
   "/documents": "Compliance Documents",
-  "/settings": "Settings",
 };
 
 
@@ -38,7 +34,7 @@ export function AppLayout() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const co2View = new URLSearchParams(location.search).get('view');
   const co2TitleMap: Record<string, string> = {
-    organization: 'CO₂e by Organization',
+    organisation: 'CO₂e by organisation',
     user: 'CO₂e by User',
     serial: 'CO₂e by Serial Number',
   };
@@ -64,26 +60,7 @@ export function AppLayout() {
   // Check if user is pending approval
   const { user } = useAuth();
   const isPending = user && user.status === 'pending' && user.role !== 'admin';
-  const isDriver = user?.role === 'driver';
-  const isClient = user?.role === 'client';
-  const isReseller = user?.role === 'partner';
-  const isSettingsPage = location.pathname === '/settings';
-  
-  // Check driver profile completeness (always fetch for drivers to ensure updates are reflected)
-  const { data: driverProfile, isLoading: isLoadingDriverProfile } = useDriver(
-    isDriver ? user?.id || null : null
-  );
-  const hasIncompleteDriverProfile = isDriver && (!driverProfile || !driverProfile.hasProfile);
 
-  // Check client profile completeness (always fetch for clients to ensure updates are reflected)
-  const { data: clientProfile, isLoading: isLoadingClientProfile } = useClientProfile();
-  const hasIncompleteClientProfile = isClient && (!clientProfile || !clientProfile.hasProfile);
-
-  // Check reseller organisation profile completeness from API
-  const { data: isResellerProfileComplete } = useOrganisationProfileComplete(isReseller);
-  const hasIncompleteResellerProfile = isReseller && !isResellerProfileComplete;
-
-  // Close search when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -177,60 +154,6 @@ export function AppLayout() {
       <div className="flex min-h-screen w-full">
         <AppSidebar data-sidebar />
         <SidebarInset className="flex flex-col flex-1" data-main-content>
-          {/* Driver Profile Incomplete Banner - Show for drivers without complete profile */}
-          {hasIncompleteDriverProfile && !isLoadingDriverProfile && (
-            <div className="bg-warning/10 border-b border-warning/20 px-4 py-3">
-              <div className="max-w-7xl mx-auto flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="font-medium text-warning-foreground">
-                    Complete Your Driver Profile Required
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Please complete your vehicle profile information in Settings to access all features and begin working on jobs.
-                  </p>
-                </div>
-                {!isSettingsPage && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/settings')}
-                    className="flex-shrink-0"
-                  >
-                    Go to Settings
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Reseller Profile Incomplete Banner */}
-          {hasIncompleteResellerProfile && (
-            <div className="bg-warning/10 border-b border-warning/20 px-4 py-3">
-              <div className="max-w-7xl mx-auto flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="font-medium text-warning-foreground">
-                    Complete Your Organisation Profile
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Please complete your organisation details in Settings (organisation name, registration number, address, primary email, and phone) before using other features.
-                  </p>
-                </div>
-                {!isSettingsPage && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/settings')}
-                    className="flex-shrink-0"
-                  >
-                    Go to Settings
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Pending Approval Banner - Only show once at layout level */}
           {isPending && (
             <div className="bg-warning/10 border-b border-warning/20 px-4 py-3">

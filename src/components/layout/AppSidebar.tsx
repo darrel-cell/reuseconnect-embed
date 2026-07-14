@@ -4,7 +4,6 @@ import {
   Truck, 
   Leaf, 
   FileText, 
-  Settings,
   Building2,
   Users,
   ClipboardList,
@@ -24,8 +23,6 @@ import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantTheme } from "@/contexts/TenantThemeContext";
-import { useClientProfile } from "@/hooks/useClients";
-import { useOrganisationProfile } from "@/hooks/useOrganisationProfile";
 import { useReferralLogoSrc } from "@/hooks/useReferralLogoSrc";
 import {
   Sidebar,
@@ -37,7 +34,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -64,7 +60,7 @@ const getMainNavItems = (role: string, isSuperAdmin?: boolean) => {
     { title: "Drivers", url: "/admin/drivers", icon: SteeringWheelIcon, roles: ['admin', 'head_of_operation'] },
     { title: "Vehicles", url: "/admin/vehicles", icon: Truck, roles: ['admin', 'head_of_operation'] },
     { title: "CO₂e Overview", url: "/co2e", icon: Leaf, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
-    { title: "Organization", url: "/co2e?view=organization", icon: Building2, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
+    { title: "organisation", url: "/co2e?view=organisation", icon: Building2, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
     { title: "User", url: "/co2e?view=user", icon: Users, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
     { title: "Serial Number", url: "/co2e?view=serial", icon: Package, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
     { title: "Documents", url: "/documents", icon: FileText, roles: ['admin', 'head_of_operation', 'client', 'partner'] },
@@ -77,30 +73,12 @@ const getMainNavItems = (role: string, isSuperAdmin?: boolean) => {
   return baseItems.filter(item => item.roles.includes(role));
 };
 
-const formatRoleLabel = (role: string) => {
-  const labels: Record<string, string> = {
-    admin: "Admin",
-    client: "Client",
-    partner: "Partner",
-    driver: "Driver",
-    head_of_operation: "Head of Operation",
-    warehouse_technician: "Warehouse Technician",
-  };
-  return labels[role] || role.replace(/_/g, " ");
-};
-
-const bottomNavItems = [
-  { title: "Settings", url: "/settings", icon: Settings, roles: ['admin', 'head_of_operation', 'client', 'partner', 'driver', 'warehouse_technician'] },
-];
-
 function AppSidebar() {
   const location = useLocation();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
-  const { user, logout, partner } = useAuth();
+  const { user, partner } = useAuth();
   const { logo } = useTenantTheme();
-  const { data: clientProfile } = useClientProfile();
-  const { data: organisationProfile } = useOrganisationProfile();
   const contentRef = useRef<HTMLDivElement>(null);
   const [hasOverflowAbove, setHasOverflowAbove] = useState(false);
   const [hasOverflowBelow, setHasOverflowBelow] = useState(false);
@@ -118,7 +96,6 @@ function AppSidebar() {
     return current === value ? targetPath.length + 1000 : -1;
   };
 
-  // Close sidebar on mobile when navigation item is clicked
   const handleNavClick = () => {
     if (isMobile) {
       setOpenMobile(false);
@@ -129,7 +106,7 @@ function AppSidebar() {
   const co2NavItems = mainNavItems.filter(item => item.url.startsWith('/co2e'));
   const primaryNavItems = mainNavItems.filter(item => !item.url.startsWith('/co2e'));
   const allNavUrls = useMemo(
-    () => [...primaryNavItems, ...co2NavItems, ...bottomNavItems].map((item) => item.url),
+    () => [...primaryNavItems, ...co2NavItems].map((item) => item.url),
     [primaryNavItems, co2NavItems]
   );
   const bestMatchScore = useMemo(
@@ -157,18 +134,6 @@ function AppSidebar() {
     "flex items-center min-w-0 transition-all duration-200",
     isCollapsed ? "w-10 justify-center" : "w-full gap-3"
   );
-
-  const footerNavLinkClass = cn(
-    "flex items-center min-w-0 transition-all duration-200",
-    isCollapsed ? "w-8 justify-center" : "w-full gap-3"
-  );
-
-  const orgLabel =
-    user?.role === "client" && clientProfile?.organisationName
-      ? clientProfile.organisationName
-      : user?.role === "partner" && organisationProfile?.organisationName
-        ? organisationProfile.organisationName
-        : "Reuse Connect ITAD Platform";
 
   useEffect(() => {
     const element = contentRef.current;
@@ -303,71 +268,6 @@ function AppSidebar() {
           </div>
         )}
       </SidebarContent>
-
-      <SidebarFooter>
-        <SidebarMenu className={cn(isCollapsed && "items-center")}>
-          {bottomNavItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive(item.url)}
-                tooltip={item.title}
-                className={mainNavButtonClass(isActive(item.url))}
-              >
-                <NavLink 
-                  to={item.url} 
-                  className={footerNavLinkClass}
-                  onClick={handleNavClick}
-                >
-                  <item.icon className={cn("shrink-0 transition-all duration-200", isCollapsed ? "size-4" : "h-5 w-5")} />
-                  {!isCollapsed && <span className="font-medium">{item.title}</span>}
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-          
-          {/* User/Org section */}
-          {user && (
-            <>
-              <SidebarMenuItem>
-                {isCollapsed ? (
-                  <SidebarMenuButton
-                    tooltip={{
-                      children: (
-                        <>
-                          <p className="font-medium leading-tight">{orgLabel}</p>
-                          <p className="mt-1 text-xs text-muted-foreground capitalize leading-tight">
-                            {user.name} · {formatRoleLabel(user.role)}
-                          </p>
-                        </>
-                      ),
-                      className: "max-w-[260px]",
-                    }}
-                    className={cn(
-                      mainNavButtonClass(false),
-                      "bg-sidebar-primary/15 text-sidebar-primary hover:bg-sidebar-primary/25 hover:text-sidebar-primary"
-                    )}
-                  >
-                    <Building2 className="size-4" />
-                  </SidebarMenuButton>
-                ) : (
-                  <div className="flex w-full items-center gap-3 rounded-lg bg-sidebar-accent/50 p-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/20 text-sidebar-primary">
-                      <Building2 className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-sidebar-foreground">{orgLabel}</p>
-                      <p className="truncate text-xs capitalize text-sidebar-foreground/60">
-                        {user.name} · {formatRoleLabel(user.role)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </SidebarMenuItem>
-            </>
-          )}
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }

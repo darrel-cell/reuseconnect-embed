@@ -110,11 +110,7 @@ const AcceptInvite = () => {
       await acceptInvite({
         ...payload,
       });
-      if (invite?.role === 'partner') {
-        navigate("/settings");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate("/dashboard");
     } catch (err) {
       // Extract error message, prioritizing field-specific errors (especially password)
       let errorMessage = "Failed to accept invite. Please try again.";

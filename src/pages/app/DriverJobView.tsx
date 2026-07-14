@@ -390,12 +390,11 @@ const DriverJobView = () => {
       <div className="flex flex-col items-center justify-center py-12 px-4 space-y-4">
         <Alert className="max-w-md bg-warning/10 border-warning/20">
           <AlertDescription>
-            Your driver profile is not complete yet. Please add your vehicle information in the Settings
-            page before working on jobs.
+            Your driver profile is not complete yet. Please add your vehicle information
+            before working on jobs.
           </AlertDescription>
         </Alert>
         <div className="flex gap-3">
-          <Button onClick={() => navigate("/settings")}>Go to Settings</Button>
           <Button variant="outline" onClick={() => navigate("/jobs")}>
             Back to Jobs
           </Button>

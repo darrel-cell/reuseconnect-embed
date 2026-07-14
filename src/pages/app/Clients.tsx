@@ -374,7 +374,7 @@ const Clients = () => {
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="flex-1">
-                        <div className="text-xs text-muted-foreground mb-1">Organization Name</div>
+                        <div className="text-xs text-muted-foreground mb-1">organisation Name</div>
                         <h3 className="font-semibold text-lg">{org.tenantName}</h3>
                         {org.resellerName && (
                           <div className="mt-2">

@@ -73,7 +73,7 @@ const CO2eDashboard = () => {
   const [serialPageSize, setSerialPageSize] = useState<"50" | "100" | "all">("50");
   const [serialPage, setSerialPage] = useState<number>(1);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
-  const selectedView = (searchParams.get("view") || "overview") as "overview" | "organization" | "user" | "serial";
+  const selectedView = (searchParams.get("view") || "overview") as "overview" | "organisation" | "user" | "serial";
 
   // Normalize organisation name for grouping/comparisons:
   // - case-insensitive
@@ -305,9 +305,9 @@ const CO2eDashboard = () => {
   const netBenefit = clientStats.netBenefit;
 
   const selectedClient = selectedClientId ? clients.find(c => c.id === selectedClientId) : null;
-  const organizationRows = useMemo(() => {
-    // Group by a normalized (case-insensitive) organization key so "Sergio company" and "Sergio Company"
-    // are treated as the same organization in the UI.
+  const organisationRows = useMemo(() => {
+    // Group by a normalized (case-insensitive) organisation key so "Sergio company" and "Sergio Company"
+    // are treated as the same organisation in the UI.
     const map = new Map<string, { organisationName: string; totalSaved: number; totalTravel: number; jobs: number }>();
     for (const job of filteredJobs) {
       const normalizedKey = normalizeOrganisationName(job.organisationName) || "unknown";
@@ -358,11 +358,11 @@ const CO2eDashboard = () => {
     return [...map.values()].sort((a, b) => b.totalSaved - a.totalSaved);
   }, [filteredJobs]);
 
-  const filteredOrganizationRows = useMemo(() => {
-    if (orgFilterName === "all") return organizationRows;
+  const filteredorganisationRows = useMemo(() => {
+    if (orgFilterName === "all") return organisationRows;
     const normalized = normalizeOrganisationName(orgFilterName);
-    return organizationRows.filter(r => normalizeOrganisationName(r.organisationName) === normalized);
-  }, [organizationRows, orgFilterName]);
+    return organisationRows.filter(r => normalizeOrganisationName(r.organisationName) === normalized);
+  }, [organisationRows, orgFilterName]);
 
   const filteredUserRows = useMemo(() => {
     if (userFilterName === "all") return userRows;
@@ -389,14 +389,14 @@ const CO2eDashboard = () => {
 
   if (selectedView !== "overview") {
     const orgPageSizeNum = orgPageSize === "all" ? null : parseInt(orgPageSize, 10);
-    const orgTotal = filteredOrganizationRows.length;
+    const orgTotal = filteredorganisationRows.length;
     const orgPageCount =
       orgPageSizeNum === null ? 1 : Math.max(1, Math.ceil(orgTotal / orgPageSizeNum));
     const safeOrgPage = orgPageSizeNum === null ? 1 : Math.min(orgPage, orgPageCount);
     const orgPageRows =
       orgPageSizeNum === null
-        ? filteredOrganizationRows
-        : filteredOrganizationRows.slice(
+        ? filteredorganisationRows
+        : filteredorganisationRows.slice(
             (safeOrgPage - 1) * orgPageSizeNum,
             safeOrgPage * orgPageSizeNum
           );
@@ -430,22 +430,22 @@ const CO2eDashboard = () => {
 
     return (
       <div className="space-y-4">
-        {selectedView === "organization" && (
+        {selectedView === "organisation" && (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">CO₂e by Organization</CardTitle>
+              <CardTitle className="text-base">CO₂e by organisation</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
                 <div className="min-w-[240px]">
-                  <label className="text-xs text-muted-foreground">Filter organization</label>
+                  <label className="text-xs text-muted-foreground">Filter organisation</label>
                   <Select value={orgFilterName} onValueChange={setOrgFilterName}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="All organizations" />
+                      <SelectValue placeholder="All organisations" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All organizations</SelectItem>
-                      {organizationRows.map((row) => (
+                      <SelectItem value="all">All organisations</SelectItem>
+                      {organisationRows.map((row) => (
                         <SelectItem key={row.organisationName} value={row.organisationName}>
                           {row.organisationName}
                         </SelectItem>
@@ -472,7 +472,7 @@ const CO2eDashboard = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Organization</TableHead>
+                    <TableHead>organisation</TableHead>
                     <TableHead className="text-right">Net saved (t)</TableHead>
                     <TableHead className="text-right">Travel (kg)</TableHead>
                     <TableHead className="text-right">Jobs</TableHead>
@@ -492,7 +492,7 @@ const CO2eDashboard = () => {
                   {orgPageRows.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        No organization CO₂e data yet.
+                        No organisation CO₂e data yet.
                       </TableCell>
                     </TableRow>
                   )}

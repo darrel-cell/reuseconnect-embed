@@ -40,12 +40,13 @@ Content-Type: application/json
   "phone": "+44...",
   "organisationName": "Acme Ltd",
   "registrationNumber": "12345678",
-  "vatNumber": "GB123456789",
   "address": "1 High Street, London"
 }
 ```
 
-Optional fields: `phone`, `organisationName`, `registrationNumber`, `vatNumber`, `address`, `externalUserId`.
+Required: `firstName`, `lastName`, `email`, `phone`, `organisationName`, `registrationNumber`, `address`.
+
+Optional: `externalUserId`, `vatNumber`.
 
 ### Returning user (already registered)
 
@@ -61,12 +62,12 @@ Content-Type: application/json
 
 If the email is not registered, the API returns an error asking for the full profile payload.
 
-3. Response includes `embedPath` like `/p/{slug}?token=...`.
+3. Response includes `embedUrl` (full iframe URL), e.g. `https://embed.example.com/p/{slug}?token=...`.
 4. Partner page embeds:
 
 ```html
 <iframe
-  src="https://embed.example.com/p/{slug}?token=..."
+  src="{embedUrl}"
   style="width:100%;height:100%;border:0"
   allow="clipboard-write"
 ></iframe>

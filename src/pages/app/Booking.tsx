@@ -457,7 +457,7 @@ const Booking = () => {
   const handleSubmit = async () => {
     if (isReseller && !isResellerProfileComplete) {
       toast.error("Complete your organisation profile first", {
-        description: "Please finish your organisation details in Settings before creating bookings.",
+        description: "Organisation details are required before creating bookings. Contact support if your profile is incomplete.",
       });
       return;
     }
@@ -775,9 +775,9 @@ const Booking = () => {
                               </div>
                             ) : (
                               clients.map((client) => {
-                                const organizationName = (client.organisationName || client.tenantName || client.name || "").trim();
+                                const organisationName = (client.organisationName || client.tenantName || client.name || "").trim();
                                 const employeeName = (client.name || "").trim();
-                                const clientLabel = `${organizationName} (${employeeName})`;
+                                const clientLabel = `${organisationName} (${employeeName})`;
 
                                 return (
                                   <SelectItem key={client.id} value={client.id}>

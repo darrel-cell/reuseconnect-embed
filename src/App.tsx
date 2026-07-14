@@ -16,7 +16,6 @@ import Booking from "./pages/app/Booking";
 import BookingsHistory from "./pages/app/BookingsHistory";
 import CO2eDashboard from "./pages/app/CO2eDashboard";
 import Documents from "./pages/app/Documents";
-import Settings from "./pages/app/Settings";
 import Sites from "./pages/app/Sites";
 import BookingDetail from "./pages/app/BookingDetail";
 import BookingTimeline from "./pages/app/BookingTimeline";
@@ -77,7 +76,6 @@ const App = () => (
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/sites" element={<Sites />} />
                   <Route path="/inventory" element={<Inventory />} />
-                  <Route path="/settings" element={<Settings />} />
                   <Route path="/notifications" element={<Notifications />} />
                 </Route>
 
