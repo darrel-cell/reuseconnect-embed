@@ -1300,7 +1300,7 @@ const JobDetail = () => {
                     Upload completion documents
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Certificates, grading reports, or other files for the client (PDF, images, Excel, CSV, or TXT — max 25MB per file, up to 40 files at once).
+                    Certificates, grading reports, or other files for the client (PDF, images, Excel, CSV, or TXT — max 50MB per file, up to 40 files at once).
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="completion-doc-type">Document type</Label>
