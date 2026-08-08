@@ -12,6 +12,7 @@ export function useJobs(filter?: JobsFilter) {
     queryKey: ['jobs', filter, user?.id],
     queryFn: () => jobsService.getJobs(filter, user),
     staleTime: 30000, // 30 seconds
+    placeholderData: (previousData) => previousData,
   });
 }
 

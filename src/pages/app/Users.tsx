@@ -357,10 +357,12 @@ const Users = () => {
   };
 
   const filteredUsers = users.filter((user) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.tenantName.toLowerCase().includes(searchQuery.toLowerCase());
+      user.name.toLowerCase().includes(q) ||
+      user.email.toLowerCase().includes(q) ||
+      (user.organisationName || '').toLowerCase().includes(q) ||
+      user.tenantName.toLowerCase().includes(q);
     return matchesSearch;
   });
 

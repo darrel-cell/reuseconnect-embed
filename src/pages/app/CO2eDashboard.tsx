@@ -229,7 +229,7 @@ const CO2eDashboard = () => {
       
       return {
         clientId: client.id,
-        clientName: client.name,
+        clientName: client.organisationName || client.name,
         // UI meaning
         totalCO2e: netBenefit,
         totalTravel,

@@ -26,12 +26,14 @@ import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/auth.service";
 import type { Invite } from "@/types/auth";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const Clients = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery.trim(), 300);
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "all");
   
   // Update status filter from URL params when component mounts or URL changes
@@ -105,7 +107,7 @@ const Clients = () => {
   };
 
   const [selectedOrg, setSelectedOrg] = useState<any | null>(null);
-  const { data: organisations = [], isLoading, error } = useOrganisations(searchQuery);
+  const { data: organisations = [], isLoading, error, isFetched } = useOrganisations(debouncedSearch);
 
   // Show error state first
   if (error) {
@@ -118,8 +120,8 @@ const Clients = () => {
     );
   }
 
-  // Show loading state
-  if (isLoading) {
+  // Initial load only — keep the search input mounted while refining results
+  if (isLoading && !isFetched) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

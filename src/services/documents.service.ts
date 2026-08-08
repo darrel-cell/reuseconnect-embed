@@ -20,11 +20,13 @@ export interface Document {
     bookingNumber: string;
     client?: {
       name: string;
+      organisationName?: string;
     };
   };
   job?: {
     erpJobNumber: string;
     clientName: string;
+    organisationName?: string;
   };
 }
 

@@ -12,6 +12,7 @@ import type { WorkflowStatus } from "@/types/jobs";
 import { useJobs } from "@/hooks/useJobs";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 // All workflow status filters (aligned with WorkflowStatus type). Dispatched statuses are kept in types but skipped in UI for now.
 const allStatusFilters: { value: WorkflowStatus | "all"; label: string }[] = [
@@ -62,10 +63,11 @@ const Jobs = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<WorkflowStatus | "all">("all");
+  const debouncedSearch = useDebouncedValue(searchQuery.trim(), 300);
 
   const { data: jobs = [], isLoading, error } = useJobs({
     status: activeFilter === "all" ? undefined : activeFilter,
-    searchQuery: searchQuery || undefined,
+    searchQuery: debouncedSearch || undefined,
   });
   const visibleJobs = useMemo(() => {
     if (user?.role === "driver") {

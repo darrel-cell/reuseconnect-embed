@@ -92,7 +92,12 @@ const Documents = () => {
     id: doc.id,
     jobId: doc.jobId || "",
     jobNumber: doc.job?.erpJobNumber || doc.booking?.bookingNumber || "N/A",
-    clientName: doc.job?.clientName || doc.booking?.client?.name || "N/A",
+    clientName:
+      doc.job?.organisationName ||
+      doc.booking?.client?.organisationName ||
+      doc.job?.clientName ||
+      doc.booking?.client?.name ||
+      "N/A",
     displayTitle: doc.name,
     type: doc.type,
     generatedDate: doc.createdAt,

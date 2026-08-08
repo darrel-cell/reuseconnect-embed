@@ -13,16 +13,18 @@ import { useJobs } from "@/hooks/useJobs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { canDriverEditJob } from "@/utils/job-helpers";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const JobHistory = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRangeFilter, setDateRangeFilter] = useState<string>("all");
+  const debouncedSearch = useDebouncedValue(searchQuery.trim(), 300);
 
   // Fetch jobs without status narrowing.
   // History visibility is controlled by role-based filtering below.
   const { data: allJobs = [], isLoading, error } = useJobs({
-    searchQuery: searchQuery || undefined,
+    searchQuery: debouncedSearch || undefined,
   });
 
   const roleBasedJobs = useMemo(() => {

@@ -36,6 +36,7 @@ export function useOrganisations(search?: string) {
     enabled,
     retry: false,
     refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
   });
 }
 

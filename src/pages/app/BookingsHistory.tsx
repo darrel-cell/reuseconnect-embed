@@ -25,10 +25,12 @@ const BookingsHistory = () => {
   });
 
   const filteredBookings = bookings.filter((booking) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      booking.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.bookingNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.siteName.toLowerCase().includes(searchQuery.toLowerCase());
+      (booking.organisationName || '').toLowerCase().includes(q) ||
+      booking.clientName.toLowerCase().includes(q) ||
+      booking.bookingNumber.toLowerCase().includes(q) ||
+      booking.siteName.toLowerCase().includes(q);
     return matchesSearch;
   });
 
