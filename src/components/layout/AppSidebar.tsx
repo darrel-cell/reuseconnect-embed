@@ -101,7 +101,6 @@ const getMainNavItems = (role: string): NavItem[] => {
     { title: "Job History", url: "/jobs/history", icon: Clock, roles: ['driver', 'head_of_operation', 'warehouse_technician'], category: "operations" },
     { title: "Bookings", url: "/bookings", icon: FileText, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "operations" },
     { title: "Booking Queue", url: "/admin/bookings", icon: ClipboardList, roles: ['admin', 'head_of_operation'], category: "operations" },
-    { title: "Users", url: "/users", icon: Users, roles: ['admin', 'head_of_operation'], category: "organization" },
     { title: "Clients", url: "/clients", icon: Building2, roles: ['admin', 'head_of_operation', 'partner'], category: "organization" },
     { title: "Sites", url: "/sites", icon: MapPin, roles: ['admin', 'head_of_operation', 'client'], category: "organization" },
     { title: "Inventory", url: "/inventory", icon: Package, roles: ['admin', 'head_of_operation', 'client'], category: "warehouse" },
