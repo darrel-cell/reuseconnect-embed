@@ -20,7 +20,7 @@ import { jmlBookingService } from "@/services/jml-booking.service";
 import { startOfDay } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useClients, useClientProfile } from "@/hooks/useClients";
 import { useSites, useCreateSite } from "@/hooks/useSites";
 import { geocodeAddressWithDetails } from "@/lib/calculations";
@@ -30,6 +30,8 @@ import { useCO2Calculation } from "@/hooks/useCO2";
 import { useBuybackCalculation } from "@/hooks/useBuyback";
 import { co2eEquivalencies } from "@/lib/constants";
 import { filterJmlAssetCategories, getDeviceTypeOptionsForJmlCategory, getUnderlyingAssetCategoryNameForJml, inferDeviceTypeFromJmlCategory, isAccessoriesCategory, shouldShowDeviceTypeForJmlCategory, type JmlDeviceType } from "@/lib/jml-assets";
+import { log } from '@/lib/log';
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 interface LeaverDevice {
   make: string;
@@ -132,7 +134,7 @@ const JMLLeaver = () => {
         };
       })
       .filter(a => a.categoryId); // Filter out any without valid categoryId
-  }, [devices, assetCategories, isAccessoriesCategory]);
+  }, [devices, assetCategories]);
 
   // Calculate CO2e when assets change
   const co2CalculationRequest = useMemo(() => {
@@ -258,7 +260,7 @@ const JMLLeaver = () => {
           }));
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
         setSiteLocation(null);
       } finally {
         setIsGeocodingAddress(false);
@@ -266,7 +268,7 @@ const JMLLeaver = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [siteDetails.postcode, selectedSiteId]);
+  }, [siteDetails.postcode, siteDetails.country, selectedSiteId]);
 
   // Handle site selection (like ITAD booking)
   const handleSiteSelect = (siteId: string) => {
@@ -1223,9 +1225,9 @@ const JMLLeaver = () => {
                 <div className="min-w-0 overflow-hidden">
                   <p className={cn(
                     "text-lg sm:text-2xl font-bold break-words overflow-hidden leading-tight",
-                    selectedVehicleType === 'electric' ? "text-success" : "text-destructive"
+                    "text-destructive"
                   )}>
-                    {selectedVehicleType === 'electric' ? '0kg' : `-${travelEmissions.toFixed(1)}kg`}
+                    {`-${travelEmissions.toFixed(1)}kg`}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 break-words">Travel Emissions ({selectedVehicleType.charAt(0).toUpperCase() + selectedVehicleType.slice(1)})</p>
                 </div>
@@ -1292,7 +1294,7 @@ const JMLLeaver = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Scheduled Date</span>
                       <span className="font-semibold text-foreground">
-                        {leavingDate.toLocaleDateString("en-GB", {
+                        {leavingDate.toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                           weekday: "short",
                           day: "numeric",
                           month: "short",
@@ -1425,7 +1427,7 @@ const JMLLeaver = () => {
                           </span>
                         </div>
                         <span className="text-lg font-bold text-foreground">
-                          {selectedVehicleType === 'electric' ? '0kg' : `${travelEmissions.toFixed(2)}kg`} CO₂e
+                          {`${travelEmissions.toFixed(2)}kg`} CO₂e
                         </span>
                       </div>
                     )}

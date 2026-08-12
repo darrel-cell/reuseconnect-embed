@@ -6,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBooking } from "@/hooks/useBookings";
 import { useJob } from "@/hooks/useJobs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useGradingRecords } from "@/hooks/useGrading";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const grades: { value: 'A' | 'B' | 'C' | 'D' | 'Recycled'; label: string; color: string }[] = [
   { value: 'A', label: 'Grade A - Excellent', color: 'bg-success/10 text-success' },
@@ -108,7 +109,7 @@ const BookingGradingReport = () => {
               <p className="text-sm text-muted-foreground mt-2">
                 Current status: <Badge variant="outline" className="ml-1">{booking.status}</Badge>
               </p>
-              {((booking.status as any) === 'sanitised' || (booking.status as any) === 'graded') && user?.role === 'admin' && (
+              {booking.status === 'sanitised' && user?.role === 'admin' && (
                 <Button className="mt-4" asChild>
                   <Link to={`/admin/grading/${id}`} className="text-inherit no-underline">
                     Go to Asset Grading
@@ -257,7 +258,7 @@ const BookingGradingReport = () => {
                           <span className="text-muted-foreground">Total Value:</span> <span className="font-semibold text-foreground">£{totalValue.toLocaleString()}</span>
                         </p>
                         <p>
-                          <span className="text-muted-foreground">Graded:</span> <span className="text-foreground">{new Date(assetRecord.gradedAt).toLocaleDateString("en-GB", {
+                          <span className="text-muted-foreground">Graded:</span> <span className="text-foreground">{new Date(assetRecord.gradedAt).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                             day: "numeric",
                             month: "long",
                             year: "numeric",

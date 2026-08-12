@@ -1,6 +1,7 @@
 // Organisation Profile Service
 
 import { apiClient } from './api-client';
+import { log } from '@/lib/log';
 
 export interface OrganisationProfile {
   id: string;
@@ -37,7 +38,7 @@ class OrganisationProfileService {
     } catch (error) {
       // If API call fails (e.g., 404 - no profile exists), return null
       // This is expected for users who haven't created a profile yet
-      console.error('Failed to get organisation profile:', error);
+      log.error('Failed to get organisation profile:', error);
       return null;
     }
   }
@@ -53,7 +54,7 @@ class OrganisationProfileService {
     } catch (error) {
       // If API call fails, return false (profile not complete)
       // This prevents blocking the page load
-      console.error('Failed to check organisation profile completeness:', error);
+      log.error('Failed to check organisation profile completeness:', error);
       return false;
     }
   }

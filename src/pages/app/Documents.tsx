@@ -17,12 +17,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useJobs } from "@/hooks/useJobs";
-import { useDocuments } from "@/hooks/useDocuments";
+import { useDocumentsPage } from "@/hooks/useDocuments";
+import { ListPagination } from "@/components/common/ListPagination";
 import { documentsService } from "@/services/documents.service";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Document as DocumentType } from "@/services/documents.service";
 import { toast } from "sonner";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const docTypeConfig: Record<
   string,
@@ -71,8 +73,18 @@ const Documents = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [openJobIds, setOpenJobIds] = useState<Set<string>>(() => new Set());
+  const [docsPage, setDocsPage] = useState(1);
+  const [docsLimit, setDocsLimit] = useState(20);
   const { data: jobs = [], isLoading: isLoadingJobs } = useJobs();
-  const { data: apiDocuments = [], isLoading: isLoadingDocuments, error } = useDocuments();
+  // Paged: /documents had no take, so an admin pulled every document in every
+  // tenant on each request.
+  const {
+    documents: apiDocuments,
+    pagination: docsPagination,
+    isLoading: isLoadingDocuments,
+    isFetching: isFetchingDocuments,
+    error,
+  } = useDocumentsPage({ page: docsPage, limit: docsLimit });
 
   const jobCertificates = jobs.flatMap((job) =>
     job.certificates.map((cert, index) => ({
@@ -184,7 +196,7 @@ const Documents = () => {
             <div className="text-right hidden sm:block shrink-0">
               <p className="text-xs text-muted-foreground">Generated</p>
               <p className="text-sm font-medium">
-                {new Date(doc.generatedDate).toLocaleDateString("en-GB", {
+                {new Date(doc.generatedDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                   day: "numeric",
                   month: "short",
                   year: "numeric",
@@ -432,6 +444,14 @@ const Documents = () => {
           </div>
         </>
       )}
+
+      <ListPagination
+        pagination={docsPagination}
+        onPageChange={setDocsPage}
+        onLimitChange={(l) => { setDocsLimit(l); setDocsPage(1); }}
+        itemLabel="documents"
+        isLoading={isFetchingDocuments}
+      />
     </div>
   );
 };

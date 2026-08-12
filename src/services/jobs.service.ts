@@ -1,9 +1,11 @@
 // Jobs Service
 import type { Job, JobsFilter, DashboardStats } from '@/types/jobs';
+import type { BackendJob } from './data-transform';
 import type { User } from '@/types/auth';
 import { ApiError, ApiErrorType } from './api-error';
 import { apiClient } from './api-client';
 import { transformJobs, transformJob } from './data-transform';
+import { log } from '@/lib/log';
 
 /**
  * Convert frontend status format (hyphens) to backend format (underscores)
@@ -44,13 +46,13 @@ class JobsService {
     const queryString = params.toString();
     const endpoint = `/jobs${queryString ? `?${queryString}` : ''}`;
     
-    const backendJobs = await apiClient.get<any[]>(endpoint);
+    const backendJobs = await apiClient.get<BackendJob[]>(endpoint);
     return transformJobs(backendJobs);
   }
 
   async getJob(id: string): Promise<Job | null> {
     try {
-      const backendJob = await apiClient.get<any>(`/jobs/${id}`);
+      const backendJob = await apiClient.get<BackendJob>(`/jobs/${id}`);
       return transformJob(backendJob);
     } catch (error) {
       if (error instanceof ApiError && error.statusCode === 404) {
@@ -65,7 +67,7 @@ class JobsService {
       const stats = await apiClient.get<DashboardStats>('/dashboard/stats');
       return stats;
     } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error);
+      log.error('Failed to fetch dashboard stats:', error);
       // Return empty stats instead of throwing to prevent blocking page load
       return {
         totalJobs: 0,
@@ -75,9 +77,7 @@ class JobsService {
         totalAssets: 0,
         avgCharityPercent: 0,
         travelEmissions: {
-          petrol: 0,
-          diesel: 0,
-          electric: 0,
+          total: 0,
           totalDistanceKm: 0,
           totalDistanceMiles: 0,
         },
@@ -109,7 +109,7 @@ class JobsService {
     // Convert frontend status format to backend format
     const backendStatus = convertStatusToBackendFormat(status);
     
-    const backendJob = await apiClient.patch<any>(`/jobs/${jobId}/status`, {
+    const backendJob = await apiClient.patch<BackendJob>(`/jobs/${jobId}/status`, {
       status: backendStatus,
       ...(options?.notes ? { notes: options.notes } : {}),
       ...(typeof options?.mismatch === 'boolean' ? { mismatch: options.mismatch } : {}),
@@ -131,7 +131,7 @@ class JobsService {
       ...(evidence.status && { status: convertStatusToBackendFormat(evidence.status) }),
     };
     
-    const backendJob = await apiClient.patch<any>(`/jobs/${jobId}/evidence`, backendEvidence);
+    const backendJob = await apiClient.patch<BackendJob>(`/jobs/${jobId}/evidence`, backendEvidence);
     return transformJob(backendJob);
   }
 
@@ -148,7 +148,7 @@ class JobsService {
       manualHandlingRequirements?: string;
     }
   ): Promise<Job> {
-    const backendJob = await apiClient.patch<any>(`/jobs/${jobId}/journey-fields`, fields);
+    const backendJob = await apiClient.patch<BackendJob>(`/jobs/${jobId}/journey-fields`, fields);
     return transformJob(backendJob);
   }
 
@@ -160,18 +160,18 @@ class JobsService {
       | { categoryId: string; quantity: number }
     >
   ): Promise<Job> {
-    const backendJob = await apiClient.patch<any>(`/jobs/${jobId}/assets`, { assets });
+    const backendJob = await apiClient.patch<BackendJob>(`/jobs/${jobId}/assets`, { assets });
     return transformJob(backendJob);
   }
 
   async reassignDriver(jobId: string, driverId: string | null, vehicleId?: string): Promise<Job> {
-    const backendJob = await apiClient.post<any>(`/jobs/${jobId}/reassign-driver`, { driverId, vehicleId });
+    const backendJob = await apiClient.post<BackendJob>(`/jobs/${jobId}/reassign-driver`, { driverId, vehicleId });
     return transformJob(backendJob);
   }
 
   /** Admin: set final total buyback after job is completed */
   async updateJobBuyback(jobId: string, buybackValue: number): Promise<Job> {
-    const backendJob = await apiClient.patch<any>(`/jobs/${jobId}/buyback`, { buybackValue });
+    const backendJob = await apiClient.patch<BackendJob>(`/jobs/${jobId}/buyback`, { buybackValue });
     return transformJob(backendJob);
   }
 
@@ -180,7 +180,7 @@ class JobsService {
     jobId: string,
     adjustment: number
   ): Promise<Job> {
-    const backendJob = await apiClient.patch<any>(
+    const backendJob = await apiClient.patch<BackendJob>(
       `/jobs/${jobId}/cost-of-service-adjustment`,
       { adjustment }
     );
@@ -192,7 +192,7 @@ class JobsService {
     jobId: string,
     costOfServiceTotal: number
   ): Promise<Job> {
-    const backendJob = await apiClient.patch<any>(`/jobs/${jobId}/cost-of-service`, {
+    const backendJob = await apiClient.patch<BackendJob>(`/jobs/${jobId}/cost-of-service`, {
       costOfServiceTotal,
     });
     return transformJob(backendJob);

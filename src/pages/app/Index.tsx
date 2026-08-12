@@ -7,9 +7,10 @@ import { TravelEmissionsBox } from "@/components/dashboard/TravelEmissionsBox";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useDashboardStats } from "@/hooks/useJobs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { log } from '@/lib/log';
 
 const Index = () => {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ const Index = () => {
 
   // Show error but don't block the page - allow partial rendering
   if (error) {
-    console.error('Dashboard stats error:', error);
+    log.error('Dashboard stats error:', error);
   }
 
   return (

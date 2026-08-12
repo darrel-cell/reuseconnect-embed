@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useCallback, useEffect, useState, ReactNode } from 'react';
 import type { AuthState, User, Tenant, LoginCredentials, SignupData, InviteData } from '@/types/auth';
 import { authService } from '@/services/auth.service';
 import { apiClient } from '@/services/api-client';
@@ -12,24 +12,9 @@ import {
   setStoredPartner,
   type EmbedPartnerInfo,
 } from '@/lib/embed-session';
+import { AuthContext, type AuthContextType } from './auth-context';
 
-interface AuthContextType extends AuthState {
-  partner: EmbedPartnerInfo | null;
-  isLoading: boolean;
-  hasRole: (roles: string[]) => boolean;
-  establishEmbedSession: (token: string) => Promise<AuthState>;
-  setPartner: (partner: EmbedPartnerInfo | null) => void;
-  login: (credentials: LoginCredentials) => Promise<AuthState | { requiresTwoFactor: true; userId: string; email: string; message: string }>;
-  verifyTwoFactor: (userId: string, code: string) => Promise<AuthState>;
-  resendTwoFactorCode: (userId: string) => Promise<{ message: string }>;
-  signup: (data: SignupData) => Promise<void>;
-  signupClient: (data: Omit<SignupData, 'role'>) => Promise<void>;
-  signupPartner: (data: Omit<SignupData, 'role'>) => Promise<void>;
-  acceptInvite: (data: InviteData) => Promise<void>;
-  logout: () => Promise<void>;
-}
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function unsupportedEmbedAuth(): never {
   throw new Error('Password login is not available in the embed portal. Open this app from your partner website.');
@@ -44,6 +29,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [partner, setPartnerState] = useState<EmbedPartnerInfo | null>(getStoredPartner());
   const [isLoading, setIsLoading] = useState(true);
+
+  /**
+   * Drop the session locally.
+   *
+   * Deliberately keeps the stored partner so the "Session required" screen can
+   * still show whose portal this is; only the credential goes.
+   */
+  const endSession = useCallback(() => {
+    setStoredAuthToken(null);
+    apiClient.setAuthToken(null);
+    apiClient.setCsrfToken(null);
+    setAuthState({ user: null, tenant: null, token: null, isAuthenticated: false });
+  }, []);
+
+  /**
+   * Act on an expired or revoked session instead of letting the iframe sit on
+   * stale data. `ProtectedRoute` renders "Open this portal from your partner
+   * website" as soon as `isAuthenticated` goes false, which is the only remedy
+   * available here — the embed has no sign-in form of its own.
+   */
+  useEffect(() => {
+    apiClient.setSessionExpiredHandler(endSession);
+    return () => apiClient.setSessionExpiredHandler(null);
+  }, [endSession]);
 
   useEffect(() => {
     const token = getStoredAuthToken();
@@ -80,6 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await embedService.exchangeToken(token, getParentOrigin());
     setStoredAuthToken(result.token);
     apiClient.setAuthToken(result.token);
+    // Re-arm, so an expiry later in this session is acted on rather than
+    // suppressed by the once-only notice from a previous one.
+    apiClient.resetSessionExpiredNotice();
     if (result.csrfToken) {
       apiClient.setCsrfToken(result.csrfToken);
     }
@@ -110,15 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     clearEmbedSession();
-    apiClient.setAuthToken(null);
-    apiClient.setCsrfToken(null);
     setPartnerState(null);
-    setAuthState({
-      user: null,
-      tenant: null,
-      token: null,
-      isAuthenticated: false,
-    });
+    endSession();
   };
 
   const hasRole = (roles: string[]): boolean => {
@@ -150,10 +155,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}

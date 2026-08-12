@@ -1,16 +1,38 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { inventoryService, InventoryItem, InventoryUploadItem } from "@/services/inventory.service";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 
 export function useInventory(clientId?: string | null) {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ['inventory', clientId || user?.id],
     queryFn: () => inventoryService.getInventory(clientId || undefined),
     enabled: !!user,
   });
+}
+
+/** Paginated inventory, exposing the total. Use this for any table of devices. */
+export function useInventoryPage(filter?: {
+  allocatedTo?: string | null;
+  page?: number;
+  limit?: number;
+}) {
+  const { user } = useAuth();
+
+  const query = useQuery({
+    queryKey: ['inventory', 'page', filter?.allocatedTo || user?.id, filter?.page, filter?.limit],
+    queryFn: () => inventoryService.getInventoryPage(filter),
+    enabled: !!user,
+    placeholderData: (prev) => prev,
+  });
+
+  return {
+    ...query,
+    inventory: query.data?.data ?? [],
+    pagination: query.data?.pagination,
+  };
 }
 
 export function useAvailableInventory(allocatedTo: string, category?: string, conditionCode?: string) {

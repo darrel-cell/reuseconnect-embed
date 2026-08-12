@@ -25,6 +25,15 @@ dist-ssr
 *.sln
 *.sw?
 
-# Documentation files (except README files)
-*.md
-!README.md
+# Scratch notes only. Do NOT ignore *.md wholesale: that excluded the whole
+# docs/ directory from version control, so project documentation lived only on
+# whoever wrote it and vanished on a clean checkout.
+NOTES.md
+SCRATCH.md
+notes/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

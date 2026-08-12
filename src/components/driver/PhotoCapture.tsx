@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { compressImage, compressBase64Image, MAX_FILE_SIZE, PHOTO_COMPRESSION_OPTIONS } from "@/utils/image-compression";
+import { log } from '@/lib/log';
 
 interface PhotoCaptureProps {
   photos: string[];
@@ -71,7 +72,7 @@ export function PhotoCapture({ photos, onPhotosChange, maxPhotos = 10 }: PhotoCa
         });
       } catch (constraintErr) {
         // If specific constraints fail, try with default settings
-        console.warn('Camera constraints not supported, trying default settings:', constraintErr);
+        log.warn('Camera constraints not supported, trying default settings:', constraintErr);
         mediaStream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: false
@@ -85,7 +86,7 @@ export function PhotoCapture({ photos, onPhotosChange, maxPhotos = 10 }: PhotoCa
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err) {
-      console.error('Error accessing camera:', err);
+      log.error('Error accessing camera:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       
       // Show error message
@@ -145,7 +146,7 @@ export function PhotoCapture({ photos, onPhotosChange, maxPhotos = 10 }: PhotoCa
         stopCamera();
       }, 500);
     } catch (error) {
-      console.error('Failed to compress photo:', error);
+      log.error('Failed to compress photo:', error);
       toast.error('Failed to compress photo', {
         description: error instanceof Error ? error.message : 'Please try again',
       });
@@ -179,7 +180,7 @@ export function PhotoCapture({ photos, onPhotosChange, maxPhotos = 10 }: PhotoCa
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err) {
-      console.error('Error switching camera:', err);
+      log.error('Error switching camera:', err);
       setError('Failed to switch camera. Please try again.');
     }
   };
@@ -210,7 +211,7 @@ export function PhotoCapture({ photos, onPhotosChange, maxPhotos = 10 }: PhotoCa
             const compressedPhoto = await compressImage(file, PHOTO_COMPRESSION_OPTIONS);
             compressedPhotos.push(compressedPhoto);
           } catch (error) {
-            console.error(`Failed to compress ${file.name}:`, error);
+            log.error(`Failed to compress ${file.name}:`, error);
             toast.error("Compression failed", {
               description: `Failed to compress ${file.name}. ${error instanceof Error ? error.message : 'Please try again.'}`,
             });

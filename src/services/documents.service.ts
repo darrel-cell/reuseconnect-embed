@@ -1,6 +1,7 @@
 // Documents Service
-import { apiClient } from './api-client';
+import { apiClient, type Paginated } from './api-client';
 import { API_BASE_URL, apiTunnelHeaders } from '@/lib/config';
+import { log } from '@/lib/log';
 
 export interface Document {
   id: string;
@@ -72,6 +73,21 @@ class DocumentsService {
     return apiClient.postFormData<Document[]>(`/documents/job/${jobId}/upload`, formData);
   }
 
+  /**
+   * A page of the current user's documents, keeping the envelope.
+   *
+   * `/documents` had no `take`; Chain-of-Custody and grading paperwork
+   * accumulates one or more rows per job, so this is the call the documents
+   * screen uses.
+   */
+  async getDocumentsPage(filter?: { page?: number; limit?: number }): Promise<Paginated<Document>> {
+    const params = new URLSearchParams();
+    if (filter?.page) params.append('page', String(filter.page));
+    if (filter?.limit) params.append('limit', String(filter.limit));
+    const qs = params.toString();
+    return apiClient.getPaginated<Document>(`/documents${qs ? `?${qs}` : ''}`);
+  }
+
   async getDocuments(): Promise<Document[]> {
     try {
       const documents = await apiClient.get<Document[]>('/documents');
@@ -82,7 +98,7 @@ class DocumentsService {
       // If documents is null or undefined, return empty array
       return [];
     } catch (error) {
-      console.error('Failed to fetch documents:', error);
+      log.error('Failed to fetch documents:', error);
       // Always return an array, never undefined
       return [];
     }
@@ -144,7 +160,7 @@ class DocumentsService {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(urlObject);
     } catch (error) {
-      console.error('Failed to download document:', error);
+      log.error('Failed to download document:', error);
       throw error;
     }
   }

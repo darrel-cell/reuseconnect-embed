@@ -31,7 +31,8 @@ import { getStatusLabelExtended, getStatusColor, getStatusLabel } from "@/types/
 import type { BookingLifecycleStatus } from "@/types/booking-lifecycle";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
+import { formatDate } from '@/lib/datetime';
 
 // Group order and status mapping (aligned with ITAD / New Starter / Leaver / Breakfix / Mover flows)
 const statusGroups: { label: string; statuses: (BookingLifecycleStatus | 'cancelled')[] }[] = [
@@ -458,7 +459,7 @@ const BookingQueue = () => {
                             )}
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Calendar className="h-4 w-4" />
-                              <span>{new Date(booking.scheduledDate).toLocaleDateString("en-GB")}</span>
+                              <span>{formatDate(booking.scheduledDate)}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Package className="h-4 w-4" />

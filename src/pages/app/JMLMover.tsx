@@ -17,7 +17,7 @@ import { jmlBookingService } from "@/services/jml-booking.service";
 import { Mail } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useClients, useClientProfile } from "@/hooks/useClients";
 import { useSites, useCreateSite } from "@/hooks/useSites";
 import { geocodeAddressWithDetails, calculateRoundTripDistance } from "@/lib/calculations";
@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { filterJmlAssetCategories, getDeviceTypeOptionsForJmlCategory, getUnderlyingAssetCategoryNameForJml, inferDeviceTypeFromJmlCategory, isAccessoriesCategory, shouldShowDeviceTypeForJmlCategory, type JmlDeviceType } from "@/lib/jml-assets";
 import { useCO2Calculation } from "@/hooks/useCO2";
 import { co2eEquivalencies } from "@/lib/constants";
+import { log } from '@/lib/log';
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 interface CurrentDevice {
   make: string;
@@ -185,7 +187,7 @@ const JMLMover = () => {
           }
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
         setCurrentLocation(null);
       } finally {
         setIsGeocodingCurrentAddress(false);
@@ -193,7 +195,7 @@ const JMLMover = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [currentAddressDetails.postcode, selectedCurrentSiteId]);
+  }, [currentAddressDetails.postcode, currentAddressDetails.country, selectedCurrentSiteId]);
 
   // Auto-geocode postcode for new address
   useEffect(() => {
@@ -223,7 +225,7 @@ const JMLMover = () => {
           }
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
         setNewLocation(null);
       } finally {
         setIsGeocodingNewAddress(false);
@@ -231,7 +233,7 @@ const JMLMover = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [newAddressDetails.postcode, selectedNewSiteId]);
+  }, [newAddressDetails.postcode, newAddressDetails.country, selectedNewSiteId]);
 
   // Calculate total mover distance for CO2 preview:
   // (warehouse → current/collection) * 2  +  (warehouse → delivery/new) * 2
@@ -255,7 +257,7 @@ const JMLMover = () => {
           setMoverDistanceKm(currentRoundTripKm + newRoundTripKm);
         }
       } catch (error) {
-        console.error("Error calculating mover distance for CO2 preview:", error);
+        log.error("Error calculating mover distance for CO2 preview:", error);
         if (!cancelled) setMoverDistanceKm(0);
       } finally {
         if (!cancelled) setIsCalculatingMoverDistance(false);
@@ -1797,7 +1799,7 @@ const JMLMover = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Move Date</span>
                       <span className="font-semibold text-foreground">
-                        {moveDate.toLocaleDateString("en-GB", {
+                        {moveDate.toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                           weekday: "short",
                           day: "numeric",
                           month: "short",

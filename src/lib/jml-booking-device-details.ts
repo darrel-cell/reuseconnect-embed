@@ -3,6 +3,28 @@ import { getUnderlyingAssetCategoryNameForJml } from "@/lib/jml-assets";
 export type JmlDeviceDetailRow = { make?: string; model?: string; deviceType?: string };
 
 /**
+ * One entry in the "Device details:" JSON embedded in a booking's status-history
+ * notes.
+ *
+ * Written by our own booking forms, so the shape is known — but it arrives as
+ * text through `JSON.parse`, so every field is optional and call sites guard
+ * before use. Declared here rather than repeated as `any` in the six screens that
+ * read it.
+ */
+export type ParsedJmlDevice = {
+  category?: string;
+  make?: string;
+  model?: string;
+  deviceType?: string;
+  serialNumber?: string;
+  imei?: string;
+  quantity?: number;
+  accessories?: string[];
+  /** Free-text note the booker attached to this device. */
+  notes?: string;
+};
+
+/**
  * Parse JML "Device details:" JSON from booking status history into a lookup map.
  * Keys: lowercased UI category (e.g. "phone"), lowercased DB name ("smart phones"), and raw category string.
  */
@@ -29,10 +51,10 @@ export function buildJmlDeviceDetailsMapFromBooking(booking: {
       notes.match(/Device details:\s*(\[[\s\S]*?\])/i);
     if (!deviceDetailsMatch) return map;
 
-    const deviceDetails = JSON.parse(deviceDetailsMatch[1]) as unknown[];
+    const deviceDetails = JSON.parse(deviceDetailsMatch[1]) as ParsedJmlDevice[];
     if (!Array.isArray(deviceDetails)) return map;
 
-    deviceDetails.forEach((device: any) => {
+    deviceDetails.forEach((device) => {
       if (!device?.category) return;
 
       const rawCategory = String(device.category).trim();

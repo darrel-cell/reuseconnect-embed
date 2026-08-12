@@ -32,7 +32,7 @@ export async function geocodePostcode(postcode: string): Promise<{ lat: number; 
       };
     }
   } catch (error) {
-    console.error('Geocoding error:', error);
+    log.error('Geocoding error:', error);
   }
   return null;
 }
@@ -222,7 +222,7 @@ export async function geocodeAddressWithDetails(
       return { coordinates, address };
     }
   } catch (error) {
-    console.error('Geocoding error:', error);
+    log.error('Geocoding error:', error);
   }
   
   return { coordinates: null, address: null };
@@ -230,6 +230,7 @@ export async function geocodeAddressWithDetails(
 
 // Import road distance function
 import { calculateRoundTripRoadDistance } from './routing';
+import { log } from '@/lib/log';
 
 /**
  * Calculate round trip road distance from collection site to warehouse

@@ -25,13 +25,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDrivers, useDeleteDriverProfile } from "@/hooks/useDrivers";
 import { useInvites, useCancelInvite } from "@/hooks/useInvites";
 import { useVehicles, useAllocateVehicle, useRemoveDriverFromVehicle } from "@/hooks/useVehicles";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { authService } from "@/services/auth.service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Invite } from "@/types/auth";
+import { formatDate, formatTime } from '@/lib/datetime';
 
 const Drivers = () => {
   const { user } = useAuth();
@@ -545,21 +546,21 @@ const Drivers = () => {
                               Role: <span className="font-medium capitalize">{invite.role}</span>
                             </p>
                             <p className="break-words">
-                              Sent: {new Date(invite.invitedAt).toLocaleDateString()} at {new Date(invite.invitedAt).toLocaleTimeString()}
+                              Sent: {formatDate(new Date(invite.invitedAt))} at {formatTime(new Date(invite.invitedAt))}
                             </p>
                             {isPending && (
                               <p className={cn(isExpiringSoon && "text-warning font-medium", "break-words")}>
-                                Expires: {expiresDate.toLocaleDateString()} ({Math.ceil((expiresDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))} days left)
+                                Expires: {formatDate(expiresDate)} ({Math.ceil((expiresDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))} days left)
                               </p>
                             )}
                             {isAccepted && invite.acceptedAt && (
                               <p className="text-success break-words">
-                                Accepted: {new Date(invite.acceptedAt).toLocaleDateString()} at {new Date(invite.acceptedAt).toLocaleTimeString()}
+                                Accepted: {formatDate(new Date(invite.acceptedAt))} at {formatTime(new Date(invite.acceptedAt))}
                               </p>
                             )}
                             {isExpired && (
                               <p className="text-destructive break-words">
-                                Expired: {expiresDate.toLocaleDateString()}
+                                Expired: {formatDate(expiresDate)}
                               </p>
                             )}
                           </div>

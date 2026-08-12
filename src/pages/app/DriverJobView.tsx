@@ -30,12 +30,23 @@ import { toast } from "sonner";
 import { useJob, useUpdateJobEvidence, useUpdateJobStatus, useUpdateJobJourneyFields, useUpdateJobCollectedQuantities } from "@/hooks/useJobs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { WorkflowStatus } from "@/types/jobs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useDriver } from "@/hooks/useDrivers";
 import { useAssetCategories } from "@/hooks/useAssets";
 import { canDriverEditJob, isDriverFinalStatus } from "@/utils/job-helpers";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 type ExtraAssetLine = { key: string; categoryId: string; quantity: number };
+
+/**
+ * The only driver transition that requires evidence.
+ *
+ * En route and arrived are plain status buttons; "collection complete" is the
+ * one that needs a photographed Transfer of Custody and a customer signature.
+ * Module scope because it is a constant — declared inside the component it was
+ * a new array on every render, which defeated the memos that depend on it.
+ */
+const STATUSES_REQUIRING_EVIDENCE: WorkflowStatus[] = ['collected'];
 
 const DriverJobView = () => {
   const { id } = useParams();
@@ -192,6 +203,7 @@ const DriverJobView = () => {
 
     previousJobIdRef.current = job.id;
     previousStatusRef.current = job.status;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only these two fields drive this effect; widening to the whole job would re-run it on every refetch
   }, [job?.id, job?.status]);
 
   // Helper function to get next status based on booking type
@@ -228,6 +240,7 @@ const DriverJobView = () => {
   const nextStatus = useMemo((): WorkflowStatus | null => {
     if (!job) return null;
     return getNextStatusForType(job.status, job.bookingType, job.jmlSubType);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the transition depends on exactly these three fields
   }, [job?.status, job?.bookingType, job?.jmlSubType]);
 
   // Normalize status for comparison (handle both en-route and en_route)
@@ -238,25 +251,24 @@ const DriverJobView = () => {
 
   // ITAD driver workflow: only "collection complete" (→ collected) requires photos + signature.
   // En route and arrived are explicit status buttons without evidence.
-  const statusesRequiringEvidence: WorkflowStatus[] = ['collected'];
   
   // Evidence is only required when advancing to "collected" (photos + customer signature).
   // Routed → en-route and en-route → arrived use status buttons only (no evidence).
   // Arrived → collected: save evidence for "collected" then move to collected in one step.
   const evidenceTargetStatus = useMemo(() => {
-    if (!job || !nextStatus) return null;
-    // Always submit evidence for the next status (if it requires evidence)
-    if (statusesRequiringEvidence.includes(nextStatus)) {
+    // nextStatus is null when there is no job, so it is the only guard needed.
+    if (!nextStatus) return null;
+    if (STATUSES_REQUIRING_EVIDENCE.includes(nextStatus)) {
       return nextStatus;
     }
     return null;
-  }, [job?.status, nextStatus]);
+  }, [nextStatus]);
 
   const currentStatusRequiresEvidence = useMemo(() => {
-    if (!job || !nextStatus) return false;
+    if (!nextStatus) return false;
     // Driver needs to submit evidence if the next status requires evidence
-    return statusesRequiringEvidence.includes(nextStatus);
-  }, [job?.status, nextStatus]);
+    return STATUSES_REQUIRING_EVIDENCE.includes(nextStatus);
+  }, [nextStatus]);
 
   const canEditBase = useMemo(() => canDriverEditJob(job), [job]);
 
@@ -283,13 +295,13 @@ const DriverJobView = () => {
     const normalizedTarget = normalizeStatus(evidenceTargetStatus);
     
     if (Array.isArray(job.evidence)) {
-      return job.evidence.find((ev: any) => {
+      return job.evidence.find((ev) => {
         const evStatus = normalizeStatus(ev.status || '');
         return evStatus === normalizedTarget;
       }) || null;
     }
     // Single evidence object (backward compatibility)
-    const evStatus = normalizeStatus((job.evidence as any).status || '');
+    const evStatus = normalizeStatus(job.evidence.status || '');
     return evStatus === normalizedTarget ? job.evidence : null;
   }, [job?.evidence, evidenceTargetStatus]);
 
@@ -331,6 +343,7 @@ const DriverJobView = () => {
     if (!job || job.status !== "arrived") return;
     setAssetQtyDraft(Object.fromEntries(job.assets.map((a) => [a.id, a.quantity])));
     setExtraAssetLines([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- jobAssetQuantitiesKey already covers the asset list; the whole job would reset the draft on every refetch
   }, [job?.id, job?.status, jobAssetQuantitiesKey]);
 
   const bookedCategoryIds = useMemo(() => {
@@ -629,7 +642,7 @@ const DriverJobView = () => {
             <div className="flex items-center gap-2 sm:gap-3">
               <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
               <p className="text-xs sm:text-sm break-words">
-                {new Date(job.scheduledDate).toLocaleDateString("en-GB", {
+                {new Date(job.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                   weekday: "long",
                   day: "numeric",
                   month: "long",

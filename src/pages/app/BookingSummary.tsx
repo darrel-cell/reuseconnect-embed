@@ -21,12 +21,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBooking } from "@/hooks/useBookings";
 import { useJob } from "@/hooks/useJobs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useGradingRecords } from "@/hooks/useGrading";
 import { useSanitisationRecords } from "@/hooks/useSanitisation";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const BookingSummary = () => {
   const { id } = useParams();
@@ -260,7 +261,7 @@ const BookingSummary = () => {
                 <div>
                   <p className="font-medium">Booking Completed</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(booking.completedAt).toLocaleString("en-GB", {
+                    {new Date(booking.completedAt).toLocaleString("en-GB", { timeZone: UK_TIME_ZONE,
                       weekday: "long",
                       day: "numeric",
                       month: "long",

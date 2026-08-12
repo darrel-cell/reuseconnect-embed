@@ -1,7 +1,10 @@
 // Global Search Service
 import { apiClient } from './api-client';
+import type { BackendJob } from './data-transform';
+import type { Booking, Client } from '@/mocks/mock-entities';
 import type { User } from '@/types/auth';
 import { transformJobs } from './data-transform';
+import { log } from '@/lib/log';
 
 export interface SearchResult {
   type: 'job' | 'client' | 'booking';
@@ -29,7 +32,7 @@ class SearchService {
       const jobsParams = new URLSearchParams();
       jobsParams.append('searchQuery', query);
       jobsParams.append('limit', '5');
-      const jobsResponse = await apiClient.get<any[]>(`/jobs?${jobsParams.toString()}`);
+      const jobsResponse = await apiClient.get<BackendJob[]>(`/jobs?${jobsParams.toString()}`);
       const jobs = transformJobs(jobsResponse || []);
 
       jobs.slice(0, 5).forEach(job => {
@@ -46,10 +49,10 @@ class SearchService {
       const clientsParams = new URLSearchParams();
       clientsParams.append('searchQuery', query);
       clientsParams.append('limit', '5');
-      const clientsResponse = await apiClient.get<any[] | null>(`/clients?${clientsParams.toString()}`);
+      const clientsResponse = await apiClient.get<Client[] | null>(`/clients?${clientsParams.toString()}`);
       const clients = clientsResponse || [];
 
-      clients.slice(0, 5).forEach((client: any) => {
+      clients.slice(0, 5).forEach((client) => {
         results.push({
           type: 'client',
           id: client.id,
@@ -63,10 +66,10 @@ class SearchService {
       const bookingsParams = new URLSearchParams();
       bookingsParams.append('searchQuery', query);
       bookingsParams.append('limit', '5');
-      const bookingsResponse = await apiClient.get<any[] | null>(`/bookings?${bookingsParams.toString()}`);
+      const bookingsResponse = await apiClient.get<Booking[] | null>(`/bookings?${bookingsParams.toString()}`);
       const bookings = bookingsResponse || [];
 
-      bookings.slice(0, 5).forEach((booking: any) => {
+      bookings.slice(0, 5).forEach((booking) => {
         results.push({
           type: 'booking',
           id: booking.id,
@@ -76,7 +79,7 @@ class SearchService {
         });
       });
     } catch (error) {
-      console.error('Search error:', error);
+      log.error('Search error:', error);
       // Return empty results on error rather than throwing
       return { results: [], total: 0 };
     }

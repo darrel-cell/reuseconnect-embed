@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { SanitisationRecord } from "@/mocks/mock-entities";
 import { motion } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ import { useBooking, useUpdateBookingStatus } from "@/hooks/useBookings";
 import { useSanitisationRecords, useCreateSanitisationRecord, useVerifySanitisation } from "@/hooks/useSanitisation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 
 const sanitisationMethods = [
@@ -24,6 +25,12 @@ const sanitisationMethods = [
   { value: 'shredding', label: 'Shredding' },
   { value: 'other', label: 'Other' },
 ];
+
+/** The methods the API accepts, mirrored from `SanitisationRecord`. */
+type SanitisationMethod = SanitisationRecord['method'];
+const isSanitisationMethod = (value: string): value is SanitisationMethod =>
+  value === 'blancco' || value === 'physical-destruction' || value === 'degaussing' ||
+  value === 'shredding' || value === 'other';
 
 const Sanitisation = () => {
   const { id } = useParams();
@@ -39,7 +46,7 @@ const Sanitisation = () => {
   const updateBookingStatus = useUpdateBookingStatus();
 
   const [selectedAssetId, setSelectedAssetId] = useState<string>("");
-  const [method, setMethod] = useState<string>("");
+  const [method, setMethod] = useState<SanitisationMethod | "">("");
   const [methodDetails, setMethodDetails] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
@@ -60,7 +67,7 @@ const Sanitisation = () => {
       {
         bookingId: id,
         assetId: selectedAssetId,
-        method: method as any,
+        method,
         performedBy: user.id,
         methodDetails: methodDetails || undefined,
         notes: notes || undefined,
@@ -233,18 +240,45 @@ const Sanitisation = () => {
                     <SelectValue placeholder="Select asset category..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {booking.assets.map((asset) => (
-                      <SelectItem key={asset.categoryId} value={asset.categoryId}>
-                        {asset.categoryName} ({asset.quantity} units)
-                      </SelectItem>
-                    ))}
+                    {booking.assets.map((asset) => {
+                      // What has already been recorded against this category. Without
+                      // this the list gives no clue, so the obvious mistake is to
+                      // sanitise a category twice and leave a duplicate record behind
+                      // — the reason it is worth showing at the point of choosing.
+                      const done = recordsByAsset[asset.categoryId] || [];
+                      const allVerified = done.length > 0 && done.every((r) => r.verified);
+                      return (
+                        <SelectItem key={asset.categoryId} value={asset.categoryId}>
+                          <span className="flex items-center gap-2">
+                            {allVerified ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-hidden />
+                            ) : done.length > 0 ? (
+                              <Clock className="h-3.5 w-3.5 text-warning" aria-hidden />
+                            ) : (
+                              // Keeps the labels aligned whether or not there is an icon.
+                              <span className="h-3.5 w-3.5" aria-hidden />
+                            )}
+                            <span>
+                              {asset.categoryName} ({asset.quantity} units)
+                            </span>
+                            {done.length > 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                {allVerified
+                                  ? `already sanitised · ${done.length} record${done.length > 1 ? 's' : ''}`
+                                  : `awaiting verification · ${done.length} record${done.length > 1 ? 's' : ''}`}
+                              </span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="method">Sanitisation Method *</Label>
-                <Select value={method} onValueChange={setMethod}>
+                <Select value={method} onValueChange={(v) => { if (isSanitisationMethod(v)) setMethod(v); }}>
                   <SelectTrigger id="method">
                     <SelectValue placeholder="Select method..." />
                   </SelectTrigger>

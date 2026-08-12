@@ -16,10 +16,36 @@ export type EmbedPartnerPublic = {
   websiteUrl: string | null;
 };
 
+/** Stable code the API uses when an account may not be opened from the embed. */
+export const EMBED_BLOCKED_CODE = 'EMBED_ACCOUNT_UNAVAILABLE';
+
+/**
+ * Error that preserves the API's machine-readable `code`.
+ *
+ * Without it the bootstrap screen can only show prose, and cannot tell an
+ * unavailable account apart from an expired link or a network failure — which
+ * are three quite different things to say to somebody.
+ */
+export class EmbedError extends Error {
+  constructor(message: string, public code?: string, public status?: number) {
+    super(message);
+    this.name = 'EmbedError';
+  }
+
+  /** True when the account itself cannot be opened, rather than the link. */
+  get isAccountUnavailable(): boolean {
+    return this.code === EMBED_BLOCKED_CODE;
+  }
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    throw new Error(data.error || data.message || 'Request failed');
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new EmbedError(
+      data?.error || data?.message || 'Request failed',
+      data?.code,
+      response.status
+    );
   }
   return data.data as T;
 }

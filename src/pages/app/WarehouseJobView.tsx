@@ -14,6 +14,7 @@ import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { useJob, useUpdateJobCollectedQuantities, useUpdateJobEvidence, useUpdateJobStatus } from "@/hooks/useJobs";
 import { getWorkflowStatusLabel } from "@/lib/constants";
 import type { WorkflowStatus } from "@/types/jobs";
+import { formatDate } from '@/lib/datetime';
 
 const warehouseProgression: Record<string, WorkflowStatus> = {
   collected: "warehouse",
@@ -243,7 +244,7 @@ const WarehouseJobView = () => {
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              {new Date(job.scheduledDate).toLocaleDateString("en-GB")}
+              {formatDate(job.scheduledDate)}
             </span>
             {job.driver?.name && (
               <span className="flex items-center gap-1">

@@ -269,40 +269,33 @@ export function isValidEuropeanCountry(country: string): boolean {
 /**
  * Validate postcode format for a given country
  * If country is not provided, tries to validate against common European patterns
+ *
+ * The `country` argument used to have no effect at all. `EUROPEAN_POSTCODE_PATTERNS`
+ * is keyed by ISO code ('GB', 'FR') while the lookup here searched it by uppercased
+ * country *name* ('UNITED KINGDOM'), so no pattern was ever found and every call
+ * fell through to the lenient "matches some European format" branch below. The
+ * result: `validateEuropeanPostcode('75001', 'United Kingdom')` returned true, and a
+ * French postcode passed as a UK one — which is the check the booking and JML
+ * address forms rely on. `getCountryCode` already does the name-to-ISO mapping.
  */
 export function validateEuropeanPostcode(postcode: string, country?: string): boolean {
   if (!postcode || !postcode.trim()) {
     return false;
   }
-  
+
   const trimmedPostcode = postcode.trim();
-  
-  // If country is provided, use specific pattern
+
+  // If country is provided, hold the postcode to that country's format
   if (country) {
-    const normalizedCountry = normalizeEuropeanCountry(country);
-    if (normalizedCountry) {
-      // Find country code from normalized name
-      const countryEntry = Object.entries(EUROPEAN_COUNTRY_NAMES).find(
-        ([name]) => name === normalizedCountry
-      );
-      if (countryEntry) {
-        const countryCode = Object.keys(EUROPEAN_COUNTRY_NAMES).indexOf(normalizedCountry) >= 0
-          ? Object.keys(EUROPEAN_COUNTRY_NAMES)[Object.keys(EUROPEAN_COUNTRY_NAMES).indexOf(normalizedCountry)]
-          : null;
-        
-        // Try to find country code from ISO codes
-        for (const [code, names] of Object.entries(EUROPEAN_COUNTRY_NAMES)) {
-          if (names.includes(normalizedCountry)) {
-            const pattern = EUROPEAN_POSTCODE_PATTERNS[code.toUpperCase()];
-            if (pattern) {
-              return pattern.test(trimmedPostcode);
-            }
-          }
-        }
-      }
+    const countryCode = getCountryCode(country);
+    const pattern = countryCode ? EUROPEAN_POSTCODE_PATTERNS[countryCode] : undefined;
+    if (pattern) {
+      return pattern.test(trimmedPostcode);
     }
+    // An unrecognised country falls through rather than failing: the field is free
+    // text, so a country we have no pattern for must not block a valid postcode.
   }
-  
+
   // If no country or pattern not found, try all European patterns
   // This is more lenient but allows validation when country is unknown
   for (const pattern of Object.values(EUROPEAN_POSTCODE_PATTERNS)) {
@@ -310,7 +303,7 @@ export function validateEuropeanPostcode(postcode: string, country?: string): bo
       return true;
     }
   }
-  
+
   return false;
 }
 

@@ -3,6 +3,7 @@ import { Pen, X, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { compressBase64Image, SIGNATURE_COMPRESSION_OPTIONS } from "@/utils/image-compression";
+import { log } from '@/lib/log';
 
 interface SignatureCaptureProps {
   signature: string | null;
@@ -231,7 +232,7 @@ export function SignatureCapture({ signature, onSignatureChange }: SignatureCapt
             onSignatureChangeRef.current(compressedSignature);
             setHasSignature(true);
           } catch (error) {
-            console.error("Error compressing signature:", error);
+            log.error("Error compressing signature:", error);
             // Fallback to uncompressed if compression fails
             onSignatureChangeRef.current(dataUrl);
             setHasSignature(true);
@@ -241,7 +242,7 @@ export function SignatureCapture({ signature, onSignatureChange }: SignatureCapt
           setHasSignature(false);
         }
       } catch (error) {
-        console.error("Error saving signature:", error);
+        log.error("Error saving signature:", error);
       }
     };
 
@@ -319,7 +320,9 @@ export function SignatureCapture({ signature, onSignatureChange }: SignatureCapt
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleOrientationChange);
     };
-  }, [signature]); // Re-run if signature changes
+    // checkCanvasContent is a useCallback with no dependencies, so it is stable
+    // for the life of the component; listing it is free.
+  }, [signature, checkCanvasContent]);
 
   // Sync hasSignature with signature prop changes and check canvas content
   useEffect(() => {
@@ -383,7 +386,7 @@ export function SignatureCapture({ signature, onSignatureChange }: SignatureCapt
         onSignatureChange(compressedSignature);
         setHasSignature(true);
       } catch (error) {
-        console.error("Error compressing signature:", error);
+        log.error("Error compressing signature:", error);
         // Fallback to uncompressed if compression fails
         onSignatureChange(dataUrl);
         setHasSignature(true);

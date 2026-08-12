@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import type { ParsedJmlDevice } from "@/lib/jml-booking-device-details";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -17,6 +18,7 @@ import {
   Loader2,
   Camera,
   PenTool,
+  Tag,
   Lock,
   FileCheck,
   CheckCircle2,
@@ -39,7 +41,7 @@ import { JobStatusBadge } from "@/components/jobs/JobStatusBadge";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
 import { co2eEquivalencies, getWorkflowStatusLabel } from "@/lib/constants";
-import type { WorkflowStatus } from "@/types/jobs";
+import type { Evidence, WorkflowStatus } from "@/types/jobs";
 import {
   useJob,
   useReassignDriver,
@@ -52,7 +54,7 @@ import { useDrivers } from "@/hooks/useDrivers";
 import { useBooking } from "@/hooks/useBookings";
 import { useMemo } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { getAuthenticatedFileUrl } from "@/utils/file-url";
@@ -71,6 +73,8 @@ import { UserPlus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsService, type CompletionDocumentType } from "@/services/documents.service";
 import { Input } from "@/components/ui/input";
+import { log } from '@/lib/log';
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 function formatGbp(amount: number, withDecimals = true): string {
   return new Intl.NumberFormat("en-GB", {
@@ -140,7 +144,7 @@ const JobDetail = () => {
     if (!booking) return map;
     
     // Type assertion: statusHistory exists in API response but not in type definition
-    const statusHistory = (booking as any).statusHistory as Array<{
+    const statusHistory = booking.statusHistory as Array<{
       id: string;
       status: string;
       changedBy?: string;
@@ -158,7 +162,7 @@ const JobDetail = () => {
             const deviceDetailsMatch = creationHistory.notes.match(/Device details:\s*(\[.*?\])/);
           if (deviceDetailsMatch) {
             const deviceDetails = JSON.parse(deviceDetailsMatch[1]);
-            deviceDetails.forEach((device: any) => {
+            deviceDetails.forEach((device: ParsedJmlDevice) => {
               // Use category name as key, store device info
               map.set(device.category, {
                 make: device.make,
@@ -169,7 +173,7 @@ const JobDetail = () => {
           }
         } catch (error) {
           // If parsing fails, return empty map
-          console.error('Failed to parse device details from booking status history:', error);
+          log.error('Failed to parse device details from booking status history:', error);
         }
       }
     }
@@ -179,16 +183,16 @@ const JobDetail = () => {
 
   // For breakfix bookings, extract replacement requirements as well as broken device details.
   const replacementDeviceDetails = useMemo(() => {
-    const empty: any[] = [];
+    const empty: ParsedJmlDevice[] = [];
     if (!booking) return empty;
 
-    const statusHistory = (booking as any).statusHistory as Array<{
+    const statusHistory = booking.statusHistory as Array<{
       notes?: string;
     }> | undefined;
 
     if (!statusHistory || statusHistory.length === 0) return empty;
 
-    const creationHistory = statusHistory.find((h: any) => h.notes && h.notes.includes('Replacement Device details:'));
+    const creationHistory = statusHistory.find((h) => h.notes && h.notes.includes('Replacement Device details:'));
     if (!creationHistory?.notes) return empty;
 
     try {
@@ -268,7 +272,7 @@ const JobDetail = () => {
     );
   }
 
-  // console.log(job.assets);
+  // log.debug(job.assets);
 
   const totalAssets = job.assets.reduce((sum, a) => sum + a.quantity, 0);
   const netCO2e = job.co2eSaved - job.travelEmissions;
@@ -377,7 +381,7 @@ const JobDetail = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Scheduled Date</p>
                     <p className="font-medium">
-                      {new Date(job.scheduledDate).toLocaleDateString("en-GB", {
+                      {new Date(job.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                         weekday: "long",
                         day: "numeric",
                         month: "long",
@@ -554,7 +558,7 @@ const JobDetail = () => {
               <CardContent>
                 <div className="space-y-3">
                   {replacementDeviceDetails.length > 0 ? (
-                    replacementDeviceDetails.map((device: any, index: number) => {
+                    replacementDeviceDetails.map((device: ParsedJmlDevice, index: number) => {
                       const category = assetCategories?.find(
                         (c) =>
                           c.name === device.category ||
@@ -878,7 +882,7 @@ const JobDetail = () => {
                 {(() => {
                   // Handle both array and single evidence (backward compatibility)
                   // Also handle null/undefined cases
-                  let evidenceList: any[] = [];
+                  let evidenceList: Evidence[] = [];
                   
                   if (job.evidence) {
                     if (Array.isArray(job.evidence)) {
@@ -920,7 +924,7 @@ const JobDetail = () => {
                     return status;
                   };
                   const statusesWithEvidence = new Set(
-                    evidenceList.map((ev: any) => normalizeStatus(ev.status || ''))
+                    evidenceList.map((ev) => normalizeStatus(ev.status || ''))
                   );
                   
                   // Get required statuses based on booking type
@@ -1001,7 +1005,7 @@ const JobDetail = () => {
                       {/* Compact Accordion with scroll */}
                       <div className="flex-1 min-h-0 overflow-hidden">
                         <Accordion type="single" collapsible className="w-full space-y-1.5">
-                        {evidenceList.map((evidence: any, idx: number) => {
+                        {evidenceList.map((evidence, idx: number) => {
                           const statusLabel = getEvidenceStatusLabel(normalizeStatus(evidence.status || '')) || 'Unknown';
                           const evidenceKey = `${job.id}-${evidence.status}-${idx}`;
                           const isCurrentStatusEvidence = normalizeStatus(evidence.status || '') === normalizeStatus(job.status);
@@ -1014,7 +1018,7 @@ const JobDetail = () => {
                           const itemCount = [hasPhotos, hasSignature, hasSealNumbers, hasNotes].filter(Boolean).length;
                           
                           const submissionDate = evidence.createdAt 
-                            ? new Date(evidence.createdAt).toLocaleDateString('en-US', { 
+                            ? new Date(evidence.createdAt).toLocaleDateString('en-GB', { timeZone: UK_TIME_ZONE, 
                                 month: 'short', 
                                 day: 'numeric', 
                                 year: 'numeric',
@@ -1065,12 +1069,15 @@ const JobDetail = () => {
                                       </span>
                                     )}
                                     {hasSealNumbers && (
-                                      <span className="text-muted-foreground hidden sm:inline" title={`${evidence.sealNumbers.length} seals`}>
-                                        {evidence.sealNumbers.length}
+                                      <span className="flex items-center gap-0.5 text-muted-foreground hidden sm:inline-flex" title={`${evidence.sealNumbers.length} seals`}>
+                                        <Tag className="h-3 w-3" />
+                                        <span className="font-medium">{evidence.sealNumbers.length}</span>
                                       </span>
                                     )}
                                     {hasNotes && (
-                                      <span className="text-muted-foreground hidden sm:inline" title="Notes">N</span>
+                                      <span className="text-muted-foreground hidden sm:inline" title="Notes">
+                                        <Pencil className="h-3 w-3" />
+                                      </span>
                                     )}
                                     {itemCount === 0 && (
                                       <Badge variant="destructive" className="text-xs">
@@ -1102,7 +1109,7 @@ const JobDetail = () => {
                                             if (newTabUrl && newTabUrl !== '#') {
                                               window.open(newTabUrl, '_blank');
                                             } else {
-                                              console.error('Invalid photo URL:', photo);
+                                              log.error('Invalid photo URL:', photo);
                                             }
                                           };
                                           return (
@@ -1143,7 +1150,7 @@ const JobDetail = () => {
                                           if (newTabUrl && newTabUrl !== '#') {
                                             window.open(newTabUrl, '_blank');
                                           } else {
-                                            console.error('Invalid signature URL:', evidence.signature);
+                                            log.error('Invalid signature URL:', evidence.signature);
                                           }
                                         }}
                                       >

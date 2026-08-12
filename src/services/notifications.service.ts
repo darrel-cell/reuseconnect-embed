@@ -1,5 +1,5 @@
 // Notifications Service
-import type { Notification } from '@/contexts/NotificationContext';
+import type { Notification } from '@/contexts/notification-context';
 import { apiClient } from './api-client';
 
 export interface NotificationResponse {

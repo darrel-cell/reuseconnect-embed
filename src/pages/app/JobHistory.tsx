@@ -11,9 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useJobs } from "@/hooks/useJobs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const JobHistory = () => {
   const { user } = useAuth();
@@ -55,7 +56,7 @@ const JobHistory = () => {
     if (dateRangeFilter === "all") return roleBasedJobs;
     
     const now = new Date();
-    let cutoffDate = new Date();
+    const cutoffDate = new Date();
     
     switch (dateRangeFilter) {
       case "today":
@@ -259,7 +260,7 @@ const JobHistory = () => {
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5" />
                           <span>
-                            Completed {new Date(job.completedDate).toLocaleDateString("en-GB", {
+                            Completed {new Date(job.completedDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                               day: "numeric",
                               month: "short",
                               year: "numeric",

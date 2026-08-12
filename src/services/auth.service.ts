@@ -10,6 +10,7 @@ import type {
 } from '@/types/auth';
 import { ApiError, ApiErrorType } from './api-error';
 import { apiClient } from './api-client';
+import { log } from '@/lib/log';
 
 class AuthService {
   private currentUser: User | null = null;
@@ -61,7 +62,7 @@ class AuthService {
         // Silently handle - CSRF token will be fetched on next state-changing request
         // Only log in development for debugging
         if (process.env.NODE_ENV === 'development') {
-          console.debug('CSRF token not available after login (will be fetched on next request)');
+          log.debug('CSRF token not available after login (will be fetched on next request)');
         }
       }
     }
@@ -264,7 +265,7 @@ class AuthService {
       await apiClient.post('/auth/logout', {});
     } catch (error) {
       // Even if logout fails, clear local state
-      console.error('Logout error:', error);
+      log.error('Logout error:', error);
     }
     
     this.currentUser = null;
@@ -307,7 +308,7 @@ class AuthService {
           // Silently handle - 401 is expected if not authenticated
           // Only log in development for debugging
           if (process.env.NODE_ENV === 'development') {
-            console.debug('CSRF token not available (will be fetched on next request)');
+            log.debug('CSRF token not available (will be fetched on next request)');
           }
         }
       }

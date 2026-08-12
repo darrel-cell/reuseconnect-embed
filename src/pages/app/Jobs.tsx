@@ -10,9 +10,10 @@ import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { WorkflowStatus } from "@/types/jobs";
 import { useJobs } from "@/hooks/useJobs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 // All workflow status filters (aligned with WorkflowStatus type). Dispatched statuses are kept in types but skipped in UI for now.
 const allStatusFilters: { value: WorkflowStatus | "all"; label: string }[] = [
@@ -39,7 +40,9 @@ const allStatusFilters: { value: WorkflowStatus | "all"; label: string }[] = [
   { value: "inventory", label: "Inventory" },
 ];
 
-const STATUS_FILTER_SKIP_JOB = ["dispatched", "delivery-dispatched"] as const;
+// `readonly string[]`, not a literal tuple: this list is only ever searched,
+// and typing it narrowly forced every caller to cast the value it looks up.
+const STATUS_FILTER_SKIP_JOB: readonly string[] = ["dispatched", "delivery-dispatched"];
 
 // Statuses drivers care about (assigned / in-transit jobs only)
 const driverStatuses: (WorkflowStatus | "all")[] = ["all", "routed", "en-route", "arrived", "collected"];
@@ -52,7 +55,7 @@ const getStatusFilters = (userRole?: string) => {
   } else if (userRole === "warehouse_technician") {
     list = allStatusFilters.filter((f) => warehouseStatuses.includes(f.value));
   } else {
-    list = allStatusFilters.filter((f) => f.value === "all" || !STATUS_FILTER_SKIP_JOB.includes(f.value as any));
+    list = allStatusFilters.filter((f) => f.value === "all" || !STATUS_FILTER_SKIP_JOB.includes(f.value));
   }
   return list;
 };
@@ -201,7 +204,7 @@ const Jobs = () => {
                     )}
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {new Date(job.scheduledDate).toLocaleDateString("en-GB", {
+                      {new Date(job.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                         day: "numeric",
                         month: "short",
                         year: "numeric",

@@ -18,10 +18,11 @@ import { JobStatusBadge } from "@/components/jobs/JobStatusBadge";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { useJobs } from "@/hooks/useJobs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { kmToMiles } from "@/lib/calculations";
 import { canDriverEditJob } from "@/utils/job-helpers";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const DriverSchedule = () => {
   const { user } = useAuth();
@@ -40,9 +41,17 @@ const DriverSchedule = () => {
     });
   }, [allJobs, user?.id, user?.role]);
 
-  // Get today's date for filtering
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Midnight today, used to decide what still counts as upcoming.
+  //
+  // Computed once per mount, not per render: a bare `new Date()` is a new value
+  // every time, which makes any memo depending on it recompute constantly. The
+  // boundary does not need to move mid-session — a driver opening the screen
+  // after midnight gets a fresh mount.
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   // Filter jobs scheduled for today or future (or in progress jobs from past)
   const upcomingJobs = useMemo(() => {
@@ -61,13 +70,13 @@ const DriverSchedule = () => {
       const dateB = new Date(b.scheduledDate);
       return dateA.getTime() - dateB.getTime();
     });
-  }, [driverJobs]);
+  }, [driverJobs, today]);
 
   // Group jobs by date
   const jobsByDate = useMemo(() => {
     const grouped: Record<string, typeof upcomingJobs> = {};
     upcomingJobs.forEach(job => {
-      const dateKey = new Date(job.scheduledDate).toLocaleDateString("en-GB", {
+      const dateKey = new Date(job.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
         weekday: "long",
         day: "numeric",
         month: "long",

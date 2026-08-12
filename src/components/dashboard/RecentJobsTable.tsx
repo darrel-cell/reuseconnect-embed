@@ -7,6 +7,7 @@ import { statusConfig } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { useJobs } from "@/hooks/useJobs";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 export function RecentJobsTable() {
   const { data: jobs, isLoading } = useJobs({ limit: 5 });
@@ -93,7 +94,7 @@ export function RecentJobsTable() {
                   {job.assets.reduce((sum, a) => sum + a.quantity, 0)} assets
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(job.scheduledDate).toLocaleDateString("en-GB", {
+                  {new Date(job.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                     day: "numeric",
                     month: "short"
                   })}

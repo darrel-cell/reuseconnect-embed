@@ -9,10 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useInventory, useUploadInventory, useSyncInventory } from "@/hooks/useInventory";
+import { useInventoryPage, useUploadInventory, useSyncInventory } from "@/hooks/useInventory";
+import { ListPagination } from "@/components/common/ListPagination";
 import { useAssetCategories } from "@/hooks/useAssets";
 import { useClients } from "@/hooks/useClients";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import { InventoryItem, inventoryService, type InventoryLookupResult } from "@/services/inventory.service";
 import { compareInventoryIdentity } from "@/lib/serial-inventory-compare";
@@ -22,6 +23,8 @@ const Inventory = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [inventoryLimit, setInventoryLimit] = useState(20);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Load clients for admin
@@ -31,7 +34,12 @@ const Inventory = () => {
   }, [allClients]);
   
   // Use selected clientId for admin (optional), undefined for client users (they see their own)
-  const { data: inventory = [], isLoading } = useInventory(isAdmin ? (selectedClientId || undefined) : undefined);
+  // Paged: /inventory used to return every device row for the tenant.
+  const { inventory, pagination, isLoading, isFetching } = useInventoryPage({
+    allocatedTo: isAdmin ? (selectedClientId || undefined) : undefined,
+    page: inventoryPage,
+    limit: inventoryLimit,
+  });
   const { data: assetCategories = [] } = useAssetCategories();
   const uploadInventory = useUploadInventory();
   const syncInventory = useSyncInventory();
@@ -831,6 +839,14 @@ const Inventory = () => {
           )}
         </CardContent>
       </Card>
+
+      <ListPagination
+        pagination={pagination}
+        onPageChange={setInventoryPage}
+        onLimitChange={(l) => { setInventoryLimit(l); setInventoryPage(1); }}
+        itemLabel="devices"
+        isLoading={isFetching}
+      />
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobsService } from '@/services/jobs.service';
 import type { Job, JobsFilter } from '@/types/jobs';
 import type { User } from '@/types/auth';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth-context';
 
 export function useJobs(filter?: JobsFilter) {
   const { user } = useAuth();

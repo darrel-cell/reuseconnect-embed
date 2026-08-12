@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBooking } from "@/hooks/useBookings";
 import { useJob } from "@/hooks/useJobs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { Loader2 } from "lucide-react";
@@ -14,6 +14,7 @@ import { getStatusLabelExtended, getStatusColor, getSanitisedTimelineStep } from
 import type { BookingLifecycleStatus } from "@/types/booking-lifecycle";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 // Helper function to get timeline steps based on booking type
 function getTimelineSteps(
@@ -122,7 +123,10 @@ const BookingTimeline = () => {
   const { data: booking, isLoading, error } = useBooking(id || null);
   const { data: relatedJob } = useJob(booking?.jobId || null);
   const timelineSteps = useMemo(
-    () => (booking ? getTimelineSteps(booking.bookingType, booking.jmlSubType) : []),
+    () =>
+      booking?.bookingType || booking?.jmlSubType
+        ? getTimelineSteps(booking?.bookingType, booking?.jmlSubType)
+        : [],
     [booking?.bookingType, booking?.jmlSubType]
   );
 
@@ -247,7 +251,7 @@ const BookingTimeline = () => {
                       <p className="text-sm text-muted-foreground mb-2">{step.description}</p>
                       {timestamp && (
                         <p className="text-xs text-muted-foreground">
-                          {new Date(timestamp).toLocaleString("en-GB", {
+                          {new Date(timestamp).toLocaleString("en-GB", { timeZone: UK_TIME_ZONE,
                             day: "numeric",
                             month: "short",
                             year: "numeric",

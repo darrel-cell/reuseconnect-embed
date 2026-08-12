@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Loader2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { log } from '@/lib/log';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -99,7 +100,7 @@ export function AddressAutocomplete({
           setShowSuggestions(true);
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
       } finally {
         setIsSearching(false);
       }

@@ -1,7 +1,7 @@
 // Search Hook
 import { useQuery } from '@tanstack/react-query';
 import { searchService } from '@/services/search.service';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth-context';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 export function useSearch(query: string) {

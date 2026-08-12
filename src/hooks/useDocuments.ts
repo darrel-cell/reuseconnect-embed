@@ -1,7 +1,25 @@
 // Custom hooks for documents
 import { useQuery } from '@tanstack/react-query';
 import { documentsService } from '@/services/documents.service';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth-context';
+
+/** Paginated documents, exposing the total. Use this for the documents table. */
+export function useDocumentsPage(filter?: { page?: number; limit?: number }) {
+  const { user } = useAuth();
+
+  const query = useQuery({
+    queryKey: ['documents', 'page', user?.id, filter?.page, filter?.limit],
+    queryFn: () => documentsService.getDocumentsPage(filter),
+    enabled: !!user,
+    placeholderData: (prev) => prev,
+  });
+
+  return {
+    ...query,
+    documents: query.data?.data ?? [],
+    pagination: query.data?.pagination,
+  };
+}
 
 export function useDocuments() {
   const { user } = useAuth();

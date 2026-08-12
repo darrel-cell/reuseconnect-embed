@@ -15,7 +15,7 @@ import { MapPicker } from "@/components/booking/MapPicker";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useAssetCategories } from "@/hooks/useAssets";
 import { useBuybackCalculation } from "@/hooks/useBuyback";
 import { jmlBookingService } from "@/services/jml-booking.service";
@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { filterJmlAssetCategories, getDeviceTypeOptionsForJmlCategory, getUnderlyingAssetCategoryNameForJml, inferDeviceTypeFromJmlCategory, isAccessoriesCategory, shouldShowDeviceTypeForJmlCategory, type JmlDeviceType } from "@/lib/jml-assets";
 import { useCO2Calculation } from "@/hooks/useCO2";
 import { co2eEquivalencies } from "@/lib/constants";
+import { log } from '@/lib/log';
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 interface StarterDevice {
   make: string;
@@ -165,7 +167,7 @@ const JMLNewStarter = () => {
           }));
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
         setSiteLocation(null);
       } finally {
         setIsGeocodingAddress(false);
@@ -173,7 +175,7 @@ const JMLNewStarter = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [siteDetails.postcode, selectedSiteId]);
+  }, [siteDetails.postcode, siteDetails.country, selectedSiteId]);
 
   const selectedAssetsForCO2 = useMemo(() => {
     const fallbackCategoryId = assetCategories[0]?.id ?? "";
@@ -1234,7 +1236,7 @@ const JMLNewStarter = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Schedule Date</span>
                       <span className="font-semibold text-foreground">
-                        {startDate.toLocaleDateString("en-GB", {
+                        {startDate.toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                           weekday: "short",
                           day: "numeric",
                           month: "short",

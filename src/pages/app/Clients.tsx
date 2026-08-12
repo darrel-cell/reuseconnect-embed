@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { OrganisationCard } from "@/mocks/mock-entities";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 import { Search, Building2, Mail, Loader2, CheckCircle2, Clock, XCircle, UserPlus, AlertCircle, Trash2, Copy, Users as UsersIcon } from "lucide-react";
@@ -20,13 +21,14 @@ import { Label } from "@/components/ui/label";
 import { useOrganisations } from "@/hooks/useClients";
 import { useInvites, useCancelInvite } from "@/hooks/useInvites";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/auth.service";
 import type { Invite } from "@/types/auth";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { formatDate, formatTime } from '@/lib/datetime';
 
 const Clients = () => {
   const { user } = useAuth();
@@ -106,7 +108,7 @@ const Clients = () => {
     }
   };
 
-  const [selectedOrg, setSelectedOrg] = useState<any | null>(null);
+  const [selectedOrg, setSelectedOrg] = useState<OrganisationCard | null>(null);
   const { data: organisations = [], isLoading, error, isFetched } = useOrganisations(debouncedSearch);
 
   // Show error state first
@@ -495,21 +497,21 @@ const Clients = () => {
                                 Role: <span className="font-medium capitalize">{invite.role}</span>
                               </p>
                               <p className="break-words">
-                                Sent: {new Date(invite.invitedAt).toLocaleDateString()} at {new Date(invite.invitedAt).toLocaleTimeString()}
+                                Sent: {formatDate(new Date(invite.invitedAt))} at {formatTime(new Date(invite.invitedAt))}
                               </p>
                               {isPending && (
                                 <p className={cn(isExpiringSoon && "text-warning font-medium", "break-words")}>
-                                  Expires: {expiresDate.toLocaleDateString()} ({Math.ceil((expiresDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))} days left)
+                                  Expires: {formatDate(expiresDate)} ({Math.ceil((expiresDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))} days left)
                                 </p>
                               )}
                               {isAccepted && invite.acceptedAt && (
                                 <p className="text-success break-words">
-                                  Accepted: {new Date(invite.acceptedAt).toLocaleDateString()} at {new Date(invite.acceptedAt).toLocaleTimeString()}
+                                  Accepted: {formatDate(new Date(invite.acceptedAt))} at {formatTime(new Date(invite.acceptedAt))}
                                 </p>
                               )}
                               {isExpired && (
                                 <p className="text-destructive break-words">
-                                  Expired: {expiresDate.toLocaleDateString()}
+                                  Expired: {formatDate(expiresDate)}
                                 </p>
                               )}
                             </div>
@@ -565,7 +567,7 @@ const Clients = () => {
             <DialogDescription>Employees in this tenant</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 max-h-[420px] overflow-auto">
-            {(selectedOrg?.employees || []).map((employee: any) => (
+            {(selectedOrg?.employees || []).map((employee) => (
               <div key={employee.id} className="flex items-center justify-between border rounded-md px-3 py-2">
                 <div>
                   <div className="font-medium">{employee.name}</div>

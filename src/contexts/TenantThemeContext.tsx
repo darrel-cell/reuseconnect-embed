@@ -1,17 +1,8 @@
 // Tenant Theme Context - Single Brand Platform
-import { createContext, useContext, useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode } from 'react';
+import { TenantThemeContext, type TenantThemeContextType } from './tenant-theme-context';
 
-interface TenantThemeContextType {
-  primaryColor: string;
-  accentColor: string;
-  logo?: string;
-  favicon?: string;
-  tenantName: string;
-  applyTheme: () => void;
-  isLoading: boolean;
-}
 
-const TenantThemeContext = createContext<TenantThemeContextType | undefined>(undefined);
 
 // Single brand configuration - Reuse Connect ITAD Platform
 const DEFAULT_THEME = {
@@ -65,11 +56,4 @@ export function TenantThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useTenantTheme() {
-  const context = useContext(TenantThemeContext);
-  if (context === undefined) {
-    throw new Error('useTenantTheme must be used within a TenantThemeProvider');
-  }
-  return context;
-}
 

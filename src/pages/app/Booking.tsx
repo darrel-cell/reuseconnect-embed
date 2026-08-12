@@ -37,7 +37,7 @@ import { AddressAutocomplete } from "@/components/booking/AddressAutocomplete";
 import { co2eEquivalencies } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useClients } from "@/hooks/useClients";
 import { useSites, useCreateSite } from "@/hooks/useSites";
 import { useOrganisationProfileComplete } from "@/hooks/useOrganisationProfile";
@@ -50,6 +50,8 @@ import { validateEuropeanPostcode, isValidEuropeanCountry } from "@/lib/european
 import { BookingTypeSelector } from "@/components/booking/BookingTypeSelector";
 import { JMLSubTypeSelector } from "@/components/booking/JMLSubTypeSelector";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
+import { log } from '@/lib/log';
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const steps = [
   { id: 1, title: "Site Details", icon: Building2 },
@@ -244,7 +246,7 @@ const Booking = () => {
           }));
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
         setSiteLocation(null);
       } finally {
         setIsGeocodingAddress(false);
@@ -252,7 +254,7 @@ const Booking = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [siteDetails.postcode, selectedSiteId]);
+  }, [siteDetails.postcode, siteDetails.country, selectedSiteId]);
 
   const totalAssets = selectedAssets.reduce((sum, a) => sum + a.quantity, 0);
   const courierEligibleAssetsSummary = useMemo(() => {
@@ -308,7 +310,7 @@ const Booking = () => {
   
   // Log client errors but don't block rendering (clients are optional for admin if none exist)
   if (clientsError) {
-    console.warn('Failed to load clients:', clientsError);
+    log.warn('Failed to load clients:', clientsError);
   }
 
   const handleSiteSelect = (siteId: string) => {
@@ -1430,7 +1432,7 @@ const Booking = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Scheduled Date</span>
                       <span className="font-semibold text-foreground">
-                        {scheduledDate.toLocaleDateString("en-GB", {
+                        {scheduledDate.toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                           weekday: "short",
                           day: "numeric",
                           month: "short",

@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
+import type { Booking } from "@/mocks/mock-entities";
 import { Link } from "react-router-dom";
 import { Search, Calendar, MapPin, Package, ArrowRight, Loader2, Truck, User, Mail, Phone, Laptop, Wrench } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,21 +24,29 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+/** One device recorded when a JML collection is marked collected. */
+type CollectionItem = {
+  make: string;
+  model: string;
+  serialNumber: string;
+  imei?: string;
+  accessories?: string[];
+};
+
 const JMLBookings = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [subTypeFilter, setSubTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [actionType, setActionType] = useState<'allocate' | 'tracking' | 'delivered' | 'collected' | null>(null);
   const [serialNumber, setSerialNumber] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [collectionItems, setCollectionItems] = useState<Array<{
-    make: string;
-    model: string;
-    serialNumber: string;
-    imei?: string;
-    accessories?: string[];
-  }>>([{ make: "", model: "", serialNumber: "" }]);
+  // The API rejects a tracking update without a service, so this dialog needs it
+  // too. It had only a tracking-number field, and every update returned 400.
+  const [courierService, setCourierService] = useState("");
+  const [collectionItems, setCollectionItems] = useState<CollectionItem[]>([
+    { make: "", model: "", serialNumber: "" },
+  ]);
   const queryClient = useQueryClient();
 
   const { data: bookings = [], isLoading } = useBookings();
@@ -54,7 +64,7 @@ const JMLBookings = () => {
 
   const allocateDeviceMutation = useMutation({
     mutationFn: ({ bookingId, serialNumber }: { bookingId: string; serialNumber: string }) =>
-      jmlBookingService.allocateDevice(bookingId, serialNumber),
+      jmlBookingService.allocateDeviceBySerial(bookingId, serialNumber),
     onSuccess: () => {
       toast.success("Device allocated successfully");
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -71,14 +81,15 @@ const JMLBookings = () => {
   });
 
   const updateTrackingMutation = useMutation({
-    mutationFn: ({ bookingId, trackingNumber }: { bookingId: string; trackingNumber: string }) =>
-      jmlBookingService.updateCourierTracking(bookingId, trackingNumber),
+    mutationFn: ({ bookingId, trackingNumber, courierService }: { bookingId: string; trackingNumber: string; courierService: string }) =>
+      jmlBookingService.updateCourierTracking(bookingId, trackingNumber, courierService),
     onSuccess: () => {
       toast.success("Tracking number updated");
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       setActionType(null);
       setSelectedBooking(null);
       setTrackingNumber("");
+      setCourierService("");
     },
     onError: (error) => {
       toast.error("Failed to update tracking", {
@@ -103,7 +114,7 @@ const JMLBookings = () => {
   });
 
   const markCollectedMutation = useMutation({
-    mutationFn: ({ bookingId, items }: { bookingId: string; items: any[] }) =>
+    mutationFn: ({ bookingId, items }: { bookingId: string; items: CollectionItem[] }) =>
       jmlBookingService.markCollected(bookingId, items),
     onSuccess: () => {
       toast.success("Booking marked as collected");
@@ -153,7 +164,7 @@ const JMLBookings = () => {
     mover: "Mover",
   };
 
-  const subTypeIcons: Record<string, any> = {
+  const subTypeIcons: Record<string, LucideIcon> = {
     new_starter: User,
     leaver: User,
     breakfix: Wrench,
@@ -176,9 +187,14 @@ const JMLBookings = () => {
       toast.error("Please enter a tracking number");
       return;
     }
+    if (!courierService) {
+      toast.error("Please choose a courier service");
+      return;
+    }
     updateTrackingMutation.mutate({
       bookingId: selectedBooking.id,
       trackingNumber,
+      courierService,
     });
   };
 
@@ -208,7 +224,11 @@ const JMLBookings = () => {
     setCollectionItems(collectionItems.filter((_, i) => i !== index));
   };
 
-  const updateCollectionItem = (index: number, field: string, value: string) => {
+  const updateCollectionItem = <K extends keyof CollectionItem>(
+    index: number,
+    field: K,
+    value: CollectionItem[K]
+  ) => {
     const updated = [...collectionItems];
     updated[index] = { ...updated[index], [field]: value };
     setCollectionItems(updated);
@@ -456,6 +476,22 @@ const JMLBookings = () => {
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 placeholder="ABC123456789"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="jml-courier-service">Courier Service *</Label>
+              <Select value={courierService} onValueChange={setCourierService}>
+                <SelectTrigger id="jml-courier-service">
+                  <SelectValue placeholder="Select courier service..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fedex">FedEx</SelectItem>
+                  <SelectItem value="dpd">DPD</SelectItem>
+                  <SelectItem value="ups">UPS</SelectItem>
+                  <SelectItem value="parcelforce">Parcelforce</SelectItem>
+                  <SelectItem value="royalmail">Royal Mail</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

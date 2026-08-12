@@ -1,6 +1,6 @@
 // Inventory Service
 import { ApiError, ApiErrorType } from './api-error';
-import { apiClient } from './api-client';
+import { apiClient, type Paginated } from './api-client';
 
 export interface InventoryItem {
   id: string;
@@ -70,6 +70,32 @@ export type InventoryLookupResult =
     };
 
 class InventoryService {
+  /**
+   * A page of inventory, keeping the envelope.
+   *
+   * `/inventory` had no `take` and returned every row for the tenant. Inventory
+   * is the fastest-growing table here — one row per device — so this is the call
+   * any screen listing it should use.
+   */
+  async getInventoryPage(filter?: {
+    allocatedTo?: string | null;
+    category?: string;
+    conditionCode?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<Paginated<InventoryItem>> {
+    const params = new URLSearchParams();
+    if (filter?.allocatedTo) params.append('allocatedTo', filter.allocatedTo);
+    if (filter?.category) params.append('category', filter.category);
+    if (filter?.conditionCode) params.append('conditionCode', filter.conditionCode);
+    if (filter?.status) params.append('status', filter.status);
+    if (filter?.page) params.append('page', String(filter.page));
+    if (filter?.limit) params.append('limit', String(filter.limit));
+    const qs = params.toString();
+    return apiClient.getPaginated<InventoryItem>(`/inventory${qs ? `?${qs}` : ''}`);
+  }
+
   async getInventory(allocatedTo?: string | null): Promise<InventoryItem[]> {
     // For admin, if allocatedTo is null/undefined, don't pass it (shows all inventory)
     // For client users, don't pass allocatedTo (they see their allocated inventory)

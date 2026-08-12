@@ -1,7 +1,7 @@
 // Custom hooks for client management
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientsService } from '@/services/clients.service';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth-context';
 
 export function useClients(filter?: { status?: string; resellerId?: string }) {
   const { user } = useAuth();

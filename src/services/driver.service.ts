@@ -49,11 +49,11 @@ class DriverService {
     }
   }
 
-  async createOrUpdateProfile(data: DriverProfileRequest): Promise<any> {
+  async createOrUpdateProfile(data: DriverProfileRequest): Promise<Driver> {
     return apiClient.post('/drivers/profile', data);
   }
 
-  async updateProfile(driverId: string, data: Partial<DriverProfileRequest>): Promise<any> {
+  async updateProfile(driverId: string, data: Partial<DriverProfileRequest>): Promise<Driver> {
     return apiClient.patch(`/drivers/${driverId}/profile`, data);
   }
 

@@ -11,6 +11,29 @@ export function useSites(clientId?: string) {
   });
 }
 
+/**
+ * Paginated sites, exposing the total so a list can say "showing 20 of 340" and
+ * offer a next page. `useSites` above is kept for pickers, which only need the
+ * first page.
+ */
+export function useSitesPage(filter?: { clientId?: string; page?: number; limit?: number }) {
+  const query = useQuery({
+    queryKey: ['sites', 'page', filter],
+    queryFn: () => siteService.getSitesPage(filter),
+    retry: false,
+    refetchOnWindowFocus: false,
+    // Keep the current page visible while the next loads, so the table does not
+    // collapse to a spinner on every page change.
+    placeholderData: (prev) => prev,
+  });
+
+  return {
+    ...query,
+    sites: query.data?.data ?? [],
+    pagination: query.data?.pagination,
+  };
+}
+
 export function useSite(id: string) {
   return useQuery({
     queryKey: ['sites', id],

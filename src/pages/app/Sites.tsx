@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { Site } from "@/services/site.service";
 import { motion } from "framer-motion";
 import { 
   Search, 
@@ -27,9 +28,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSites, useCreateSite, useUpdateSite, useDeleteSite } from "@/hooks/useSites";
+import { useAuth } from "@/contexts/auth-context";
+import { useSitesPage, useCreateSite, useUpdateSite, useDeleteSite } from "@/hooks/useSites";
 import { useClients } from "@/hooks/useClients";
+import { ListPagination } from "@/components/common/ListPagination";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { geocodePostcode } from "@/lib/calculations";
@@ -41,6 +43,35 @@ import {
   getCountryCode
 } from "@/lib/european-validation";
 import type { CreateSiteRequest, UpdateSiteRequest } from "@/services/site.service";
+import { log } from '@/lib/log';
+
+/**
+ * The subset of a Nominatim geocoding result this screen reads.
+ *
+ * Third-party response, so only the fields actually used are declared — enough
+ * for the compiler to catch a typo in `address.county`, which is the mistake
+ * that would otherwise silently fail postcode validation.
+ */
+type GeocodeResult = {
+  lat?: string;
+  lon?: string;
+  display_name?: string;
+  address?: {
+    country?: string;
+    county?: string;
+    state?: string;
+    province?: string;
+    region?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
+    locality?: string;
+    post_town?: string;
+    road?: string;
+    postcode?: string;
+  };
+};
 
 const Sites = () => {
   const { user } = useAuth();
@@ -49,10 +80,12 @@ const Sites = () => {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [clientFilter, setClientFilter] = useState<string>("all");
+  const [sitesPage, setSitesPage] = useState(1);
+  const [sitesLimit, setSitesLimit] = useState(20);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedSite, setSelectedSite] = useState<any>(null);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   // Field-specific validation errors and warnings (reasons stored internally, not displayed)
   const [fieldErrors, setFieldErrors] = useState<{
@@ -83,10 +116,13 @@ const Sites = () => {
     lng: undefined,
   });
 
-  // Fetch sites - admin can filter by client, client sees only their own
-  const { data: sites = [], isLoading, error } = useSites(
-    isAdmin && clientFilter !== "all" ? clientFilter : undefined
-  );
+  // Fetch sites - admin can filter by client, client sees only their own.
+  // Paged, because /sites used to return every row in the tenant.
+  const { sites, pagination, isLoading, isFetching, error } = useSitesPage({
+    clientId: isAdmin && clientFilter !== "all" ? clientFilter : undefined,
+    page: sitesPage,
+    limit: sitesLimit,
+  });
 
   // Fetch clients for admin dropdown
   const { data: clients = [] } = useClients({});
@@ -94,18 +130,6 @@ const Sites = () => {
   const createSite = useCreateSite();
   const updateSite = useUpdateSite();
   const deleteSite = useDeleteSite();
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Failed to load sites. Please try refreshing the page.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   // Filter sites by search query
   const filteredSites = sites.filter((site) => {
@@ -140,7 +164,7 @@ const Sites = () => {
       setIsCreateDialogOpen(true);
   };
 
-  const handleEdit = (site: any) => {
+  const handleEdit = (site: Site) => {
     // Parse address from saved site
     // Format: "street, city, county, country" (4 parts, but street may contain commas)
     // We need to parse from the end to handle cases where street contains commas
@@ -232,7 +256,7 @@ const Sites = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (site: any) => {
+  const handleDelete = (site: Site) => {
     setSelectedSite(site);
     setIsDeleteDialogOpen(true);
   };
@@ -266,6 +290,10 @@ const Sites = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
+    // verifyAddressFields reads only these formData fields, so the closure is
+    // always current; adding the function itself would change nothing about when
+    // this runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.postcode, formData.street, formData.city, formData.county, formData.country]);
 
   async function verifyAddressFields() {
@@ -348,7 +376,7 @@ const Sites = () => {
       // CRITICAL: Filter results to only those matching the entered country
       // Same postcode can exist in multiple countries (e.g., "77120" in France and Finland)
       // We must only validate against results from the correct country
-      const data = allData.filter((r: any) => {
+      const data = allData.filter((r: GeocodeResult) => {
         const geocodedCountry = (r.address?.country || "").toLowerCase();
         const normalizedGeocodedCountry = normalizeEuropeanCountry(geocodedCountry);
         return normalizedEnteredCountry && normalizedGeocodedCountry && 
@@ -391,7 +419,7 @@ const Sites = () => {
       // Also check all administrative levels (city, town, village, municipality) from all results
       // Also check display_name for city names (some cities might only appear there)
       // Note: all results are now from the correct country
-      const allGeocodedCities = data.map((r: any) => {
+      const allGeocodedCities = data.map((r: GeocodeResult) => {
         const cities = [
           r.address?.city,
           r.address?.town,
@@ -531,7 +559,7 @@ const Sites = () => {
       
       // County validation: use strict matching to prevent partial matches like "S" matching "Seine-et-Marne"
       // Check against all results, not just first one (counties can vary across results)
-      const allGeocodedCounties = data.map((r: any) => {
+      const allGeocodedCounties = data.map((r: GeocodeResult) => {
         return [
           r.address?.county,
           r.address?.state,
@@ -732,7 +760,7 @@ const Sites = () => {
         },
       };
     } catch (error) {
-      console.error("Postcode verification error:", error);
+      log.error("Postcode verification error:", error);
       // On error, allow submission but show warning
       return { 
         match: true, 
@@ -804,7 +832,7 @@ const Sites = () => {
           createData.lng = coordinates.lng;
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
       } finally {
         setIsVerifying(false);
       }
@@ -869,7 +897,7 @@ const Sites = () => {
     ].join(', ');
 
     // Geocode postcode if it changed or coordinates are missing
-    let updateData: UpdateSiteRequest = {
+    const updateData: UpdateSiteRequest = {
       name: formData.name,
       address: addressParts,
       postcode: formData.postcode,
@@ -889,7 +917,7 @@ const Sites = () => {
           updateData.lng = coordinates.lng;
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
       } finally {
         setIsVerifying(false);
       }
@@ -925,6 +953,21 @@ const Sites = () => {
       });
     }
   };
+
+  // The error state returns early, but it has to sit BELOW every hook. It used
+  // to be declared above the auto-verify `useEffect`, so the hook was skipped
+  // whenever the fetch failed — React then saw a different number of hooks
+  // between renders, which corrupts the state of every hook after it.
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Failed to load sites. Please try refreshing the page.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -1068,6 +1111,14 @@ const Sites = () => {
           ))}
         </div>
       )}
+
+      <ListPagination
+        pagination={pagination}
+        onPageChange={setSitesPage}
+        onLimitChange={(l) => { setSitesLimit(l); setSitesPage(1); }}
+        itemLabel="sites"
+        isLoading={isFetching}
+      />
 
       {/* Create Site Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

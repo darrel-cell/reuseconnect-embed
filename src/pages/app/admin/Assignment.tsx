@@ -13,6 +13,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import type { BookingLifecycleStatus } from "@/types/booking-lifecycle";
 import { calculateRoundTripDistance, geocodePostcode, kmToMiles } from "@/lib/calculations";
+import { log } from '@/lib/log';
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const FREE_COURIER_MAX_ITEMS = 5;
 
@@ -103,7 +105,7 @@ const Assignment = () => {
           const distanceKm = await calculateRoundTripDistance(booking.lat, booking.lng);
           setRoundTripDistanceKm(distanceKm);
         } catch (error) {
-          console.error('Error calculating road distance from coordinates:', error);
+          log.error('Error calculating road distance from coordinates:', error);
           // Fallback: try postcode geocoding
           if (booking.siteAddress) {
             try {
@@ -118,7 +120,7 @@ const Assignment = () => {
                 }
               }
             } catch (geocodeError) {
-              console.error('Error geocoding postcode:', geocodeError);
+              log.error('Error geocoding postcode:', geocodeError);
             }
           }
           // Final fallback: set to 0 to indicate calculation failed
@@ -149,7 +151,7 @@ const Assignment = () => {
           // No postcode found or geocoding failed, set to 0
           setRoundTripDistanceKm(0); // Set to 0 to show error/warning in UI
         } catch (error) {
-          console.error('Failed to calculate distance:', error);
+          log.error('Failed to calculate distance:', error);
           setRoundTripDistanceKm(0); // Set to 0 to show error/warning in UI
         } finally {
           setIsCalculatingDistance(false);
@@ -418,7 +420,7 @@ const Assignment = () => {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Scheduled Date</p>
-                  <p>{new Date(booking.scheduledDate).toLocaleDateString("en-GB", {
+                  <p>{new Date(booking.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                     weekday: "long",
                     day: "numeric",
                     month: "long",

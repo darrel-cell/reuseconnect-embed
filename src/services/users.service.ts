@@ -1,7 +1,16 @@
 // Users Service (for admin user management)
 import type { ExtendedUser } from '@/mocks/mock-entities';
+
+export interface UserListFilter {
+  role?: string;
+  tenantId?: string;
+  isActive?: boolean;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
 import { ApiError } from './api-error';
-import { apiClient } from './api-client';
+import { apiClient, type Paginated } from './api-client';
 
 class UsersService {
   async updateUser(
@@ -34,7 +43,20 @@ class UsersService {
     });
   }
 
-  async getUsers(filter?: { role?: string; tenantId?: string; isActive?: boolean; status?: string }): Promise<ExtendedUser[]> {
+  /** Page of users, keeping the pagination envelope. */
+  async getUsersPage(filter?: UserListFilter): Promise<Paginated<ExtendedUser>> {
+    const params = new URLSearchParams();
+    if (filter?.role) params.append('role', filter.role);
+    if (filter?.status) params.append('status', filter.status);
+    if (filter?.tenantId) params.append('tenantId', filter.tenantId);
+    if (filter?.isActive !== undefined) params.append('isActive', String(filter.isActive));
+    if (filter?.page) params.append('page', String(filter.page));
+    if (filter?.limit) params.append('limit', String(filter.limit));
+    const qs = params.toString();
+    return apiClient.getPaginated<ExtendedUser>(`/users${qs ? `?${qs}` : ''}`);
+  }
+
+  async getUsers(filter?: UserListFilter): Promise<ExtendedUser[]> {
     const params = new URLSearchParams();
     if (filter?.role) {
       params.append('role', filter.role);
@@ -60,8 +82,9 @@ class UsersService {
     try {
       const user = await apiClient.get<ExtendedUser>(`/users/${id}`);
       return user || null;
-    } catch (error: any) {
-      if (error.status === 404) {
+    } catch (error) {
+      // Same `statusCode` slip as clients.service had; `error: any` hid it from tsc.
+      if (error instanceof ApiError && error.statusCode === 404) {
         return null;
       }
       throw error;

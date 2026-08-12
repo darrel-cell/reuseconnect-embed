@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 
 const supportEmail =
   (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined)?.trim() || "support@reusetechgroup.com";

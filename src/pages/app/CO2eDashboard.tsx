@@ -40,13 +40,37 @@ import { useJobs } from "@/hooks/useJobs";
 import { useAssetCategories } from "@/hooks/useAssets";
 import { useDashboardStats } from "@/hooks/useJobs";
 import { useClients } from "@/hooks/useClients";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { co2Service } from "@/services/co2.service";
+import { UK_TIME_ZONE } from '@/lib/datetime';
+
+/**
+ * Recharts hands custom ticks and formatters a loosely-typed props bag; these
+ * declare the parts this dashboard reads.
+ */
+type ChartTickProps = {
+  x?: number;
+  y?: number;
+  index?: number;
+  payload?: { value?: string | number };
+};
+
+type ChartTooltipPayload = {
+  payload?: { actualValue?: number } & Record<string, unknown>;
+  dataKey?: string | number;
+  name?: string;
+  value?: number;
+};
+
+/** Rows-per-page choices offered by the three table selects. */
+type PageSize = '50' | '100' | 'all';
+const isPageSize = (value: string): value is PageSize =>
+  value === '50' || value === '100' || value === 'all';
 
 const CO2eDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,16 +85,16 @@ const CO2eDashboard = () => {
   const { data: assetCategories = [] } = useAssetCategories();
   const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [orgFilterName, setOrgFilterName] = useState<string>("all");
-  const [orgPageSize, setOrgPageSize] = useState<"50" | "100" | "all">("50");
+  const [orgPageSize, setOrgPageSize] = useState<PageSize>("50");
   const [orgPage, setOrgPage] = useState<number>(1);
 
   const [userFilterName, setUserFilterName] = useState<string>("all");
-  const [userPageSize, setUserPageSize] = useState<"50" | "100" | "all">("50");
+  const [userPageSize, setUserPageSize] = useState<PageSize>("50");
   const [userPage, setUserPage] = useState<number>(1);
 
   const [serialCategoryFilter, setSerialCategoryFilter] = useState<string>("all");
   const [serialDeviceTypeFilter, setSerialDeviceTypeFilter] = useState<string>("all");
-  const [serialPageSize, setSerialPageSize] = useState<"50" | "100" | "all">("50");
+  const [serialPageSize, setSerialPageSize] = useState<PageSize>("50");
   const [serialPage, setSerialPage] = useState<number>(1);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const selectedView = (searchParams.get("view") || "overview") as "overview" | "organisation" | "user" | "serial";
@@ -456,7 +480,7 @@ const CO2eDashboard = () => {
 
                 <div className="min-w-[140px]">
                   <label className="text-xs text-muted-foreground">Rows per page</label>
-                  <Select value={orgPageSize} onValueChange={setOrgPageSize}>
+                  <Select value={orgPageSize} onValueChange={(v) => { if (isPageSize(v)) setOrgPageSize(v); }}>
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="50" />
                     </SelectTrigger>
@@ -559,7 +583,7 @@ const CO2eDashboard = () => {
 
                 <div className="min-w-[140px]">
                   <label className="text-xs text-muted-foreground">Rows per page</label>
-                  <Select value={userPageSize} onValueChange={setUserPageSize}>
+                  <Select value={userPageSize} onValueChange={(v) => { if (isPageSize(v)) setUserPageSize(v); }}>
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="50" />
                     </SelectTrigger>
@@ -694,7 +718,7 @@ const CO2eDashboard = () => {
 
                     <div className="min-w-[140px]">
                       <label className="text-xs text-muted-foreground">Rows per page</label>
-                      <Select value={serialPageSize} onValueChange={setSerialPageSize}>
+                      <Select value={serialPageSize} onValueChange={(v) => { if (isPageSize(v)) setSerialPageSize(v); }}>
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="50" />
                         </SelectTrigger>
@@ -1158,7 +1182,7 @@ const CO2eDashboard = () => {
                               borderRadius: "8px",
                               fontSize: "12px"
                             }}
-                            formatter={(value: number, name: string, props: any) => {
+                            formatter={(value: number, name: string, props: ChartTooltipPayload) => {
                               const actualValue = props.payload?.actualValue || 0;
                               return [
                                 `${value}% (${(actualValue / 1000).toFixed(2)}t CO₂e)`,
@@ -1202,7 +1226,7 @@ const CO2eDashboard = () => {
                       {(() => {
                         const chartData = filteredJobs.slice(0, 5).map(j => {
                           const date = new Date(j.scheduledDate);
-                          const month = date.toLocaleDateString('en-GB', { month: 'short' });
+                          const month = date.toLocaleDateString('en-GB', { timeZone: UK_TIME_ZONE, month: 'short' });
                           const year = date.getFullYear();
                           return {
                             name: j.erpJobNumber, // Use full job number as key
@@ -1227,7 +1251,7 @@ const CO2eDashboard = () => {
                               angle={-45}
                               textAnchor="end"
                               height={selectedClientId ? 80 : 100}
-                              tick={(props: any) => {
+                              tick={(props: ChartTickProps) => {
                                 const { x, y, payload, index } = props;
                                 if (!payload) return null;
                                 
@@ -1532,7 +1556,7 @@ const CO2eDashboard = () => {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px"
                       }}
-                      formatter={(value: number, name: string, props: any) => {
+                      formatter={(value: number, name: string, props: ChartTooltipPayload) => {
                         const actualValue = props.payload?.actualValue || 0;
                         return [
                           `${value}% (${(actualValue / 1000).toFixed(2)}t CO₂e)`,
@@ -1577,7 +1601,7 @@ const CO2eDashboard = () => {
                   const chartData = filteredJobs.slice(0, 5).map(j => {
                     // Format date to show month and year
                     const date = new Date(j.scheduledDate);
-                    const month = date.toLocaleDateString('en-GB', { month: 'short' });
+                    const month = date.toLocaleDateString('en-GB', { timeZone: UK_TIME_ZONE, month: 'short' });
                     const year = date.getFullYear();
                     return {
                       name: j.erpJobNumber, // Use full job number as key
@@ -1601,7 +1625,7 @@ const CO2eDashboard = () => {
                         angle={isNarrowScreen ? -60 : -45}
                         textAnchor="end"
                         height={selectedClientId ? 80 : 100}
-                         tick={(props: any) => {
+                         tick={(props: ChartTickProps) => {
                            const { x, y, payload, index } = props;
                           if (!payload) return null;
                           

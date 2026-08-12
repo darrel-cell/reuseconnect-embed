@@ -2,6 +2,7 @@
 import type { GradingRecord } from '@/mocks/mock-entities';
 import { ApiError, ApiErrorType } from './api-error';
 import { apiClient } from './api-client';
+import { log } from '@/lib/log';
 
 class GradingService {
   async getGradingRecords(bookingId?: string): Promise<GradingRecord[]> {
@@ -48,7 +49,7 @@ class GradingService {
       const response = await apiClient.get<number>(`/grading/calculate-resale-value?category=${encodeURIComponent(category)}&grade=${encodeURIComponent(grade)}&quantity=${quantity}`);
       return response || 0;
     } catch (error) {
-      console.error('Failed to calculate resale value:', error);
+      log.error('Failed to calculate resale value:', error);
       // Return 0 if API fails
       return 0;
     }

@@ -6,33 +6,41 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useBookings } from "@/hooks/useBookings";
+import { useBookingsPage } from "@/hooks/useBookings";
+import { ListPagination } from "@/components/common/ListPagination";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { getStatusLabelExtended, getStatusColor } from "@/types/booking-lifecycle";
 import type { BookingLifecycleStatus } from "@/types/booking-lifecycle";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const BookingsHistory = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
-  const { data: bookings = [], isLoading, error } = useBookings({
+  // Search is sent to the server rather than applied to the current page.
+  // Filtering client-side only searched the 20 rows that happened to be loaded,
+  // so a booking on page 3 could not be found at all.
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+
+  const { bookings, pagination, isLoading, isFetching, error } = useBookingsPage({
     status: statusFilter !== "all" ? statusFilter : undefined,
+    searchQuery: debouncedSearch || undefined,
+    page,
+    limit,
   });
 
-  const filteredBookings = bookings.filter((booking) => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      (booking.organisationName || '').toLowerCase().includes(q) ||
-      booking.clientName.toLowerCase().includes(q) ||
-      booking.bookingNumber.toLowerCase().includes(q) ||
-      booking.siteName.toLowerCase().includes(q);
-    return matchesSearch;
-  });
+  // Any filter change invalidates the current page number.
+  const resetToFirstPage = () => setPage(1);
+
+  const filteredBookings = bookings;
 
   if (error) {
     return (
@@ -74,11 +82,11 @@ const BookingsHistory = () => {
           <Input
             placeholder="Search by client, booking number, or site..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); resetToFirstPage(); }}
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); resetToFirstPage(); }}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
@@ -177,7 +185,7 @@ const BookingsHistory = () => {
                         )}
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(booking.scheduledDate).toLocaleDateString("en-GB", {
+                          {new Date(booking.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                             day: "numeric",
                             month: "short",
                             year: "numeric",
@@ -226,6 +234,14 @@ const BookingsHistory = () => {
           })}
         </div>
       )}
+
+      <ListPagination
+        pagination={pagination}
+        onPageChange={setPage}
+        onLimitChange={(l) => { setLimit(l); setPage(1); }}
+        itemLabel="bookings"
+        isLoading={isFetching}
+      />
     </div>
   );
 };

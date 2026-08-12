@@ -1,6 +1,6 @@
 // Custom hooks for user management
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usersService } from '@/services/users.service';
+import { usersService, type UserListFilter } from '@/services/users.service';
 import type { ExtendedUser } from '@/mocks/mock-entities';
 
 export function useUsers(filter?: { role?: string; tenantId?: string; isActive?: boolean; status?: string }) {
@@ -8,6 +8,19 @@ export function useUsers(filter?: { role?: string; tenantId?: string; isActive?:
     queryKey: ['users', filter],
     queryFn: () => usersService.getUsers(filter),
   });
+}
+
+/**
+ * Paginated users. The /users endpoint previously returned every row in every
+ * tenant; it is now paged, so the page must ask for what it shows.
+ */
+export function useUsersPage(filter?: UserListFilter) {
+  const query = useQuery({
+    queryKey: ['users', 'page', filter],
+    queryFn: () => usersService.getUsersPage(filter),
+    placeholderData: (prev) => prev,
+  });
+  return { ...query, users: query.data?.data ?? [], pagination: query.data?.pagination };
 }
 
 export function useUser(id: string) {

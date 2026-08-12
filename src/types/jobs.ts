@@ -126,11 +126,11 @@ export interface DashboardStats {
   totalBuyback: number;
   totalAssets: number;
   avgCharityPercent: number;
-  // Travel emissions breakdown by vehicle type
+  // Recorded collection travel emissions. This previously carried a per-fuel
+  // breakdown, but the backend produced it by rescaling a single recorded total
+  // as if every job had used a van — so the split was not real data.
   travelEmissions?: {
-    petrol: number; // kg CO2e
-    diesel: number; // kg CO2e
-    electric: number; // kg CO2e
+    total: number; // kg CO2e actually recorded against the jobs
     totalDistanceKm: number; // Total round trip distance
     totalDistanceMiles: number; // Total round trip distance in miles
   };

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import type { ParsedJmlDevice } from "@/lib/jml-booking-device-details";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Package, Loader2, CheckCircle2, User, Mail, Phone, Calendar, MapPin, X, ChevronDown, ChevronUp } from "lucide-react";
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { InventoryItem } from "@/services/inventory.service";
+import { log } from '@/lib/log';
 
 interface DeviceRequirement {
   category: string;
@@ -60,7 +62,7 @@ const DeviceAllocation = () => {
     const isBreakfix = booking?.jmlSubType === "breakfix";
 
     // Find status history entry with device details
-    const deviceHistory = booking.statusHistory.find((h: any) => 
+    const deviceHistory = booking.statusHistory.find((h) => 
       h.notes && (
         h.notes.includes('Device details:') ||
         h.notes.includes('broken devices:') ||
@@ -100,7 +102,7 @@ const DeviceAllocation = () => {
         if (replacementMatch && replacementMatch[1]) {
           const devices = JSON.parse(replacementMatch[1]);
           const parsed = devices
-            .map((d: any) => ({
+            .map((d: ParsedJmlDevice) => ({
               category: (() => {
                 const raw = (d.category || "").toString().trim();
                 const lower = raw.toLowerCase();
@@ -113,7 +115,7 @@ const DeviceAllocation = () => {
               quantity: d.quantity || 1,
               deviceType: d.deviceType || undefined,
             }))
-            .filter((d: any) => d.category && d.category !== 'accessories');
+            .filter((d) => d.category && d.category !== 'accessories');
 
           if (shouldReduceAccessoryQty) {
             return parsed
@@ -139,7 +141,7 @@ const DeviceAllocation = () => {
       if (jsonMatch && jsonMatch[1]) {
         const devices = JSON.parse(jsonMatch[1]);
         const parsed = devices
-          .map((d: any) => ({
+          .map((d: ParsedJmlDevice) => ({
             category: (() => {
               const raw = (d.category || "").toString().trim();
               const lower = raw.toLowerCase();
@@ -154,7 +156,7 @@ const DeviceAllocation = () => {
             deviceType: d.deviceType || undefined,
           }))
           // Accessories are captured as notes/qty only and are not allocated from inventory
-          .filter((d: any) => d.category && d.category !== 'accessories');
+          .filter((d) => d.category && d.category !== 'accessories');
 
         if (shouldReduceAccessoryQty) {
           return parsed
@@ -175,7 +177,7 @@ const DeviceAllocation = () => {
       if (brokenDevicesMatch && brokenDevicesMatch[1]) {
         const devices = JSON.parse(brokenDevicesMatch[1]);
         const parsed = devices
-          .map((d: any) => ({
+          .map((d: ParsedJmlDevice) => ({
             category: (() => {
               const raw = (d.category || "").toString().trim();
               const lower = raw.toLowerCase();
@@ -188,7 +190,7 @@ const DeviceAllocation = () => {
             quantity: d.quantity || 1,
             deviceType: d.deviceType || undefined,
           }))
-          .filter((d: any) => d.category && d.category !== 'accessories');
+          .filter((d) => d.category && d.category !== 'accessories');
 
         if (shouldReduceAccessoryQty) {
           return parsed
@@ -204,7 +206,7 @@ const DeviceAllocation = () => {
         return parsed;
       }
     } catch (error) {
-      console.error('Error parsing device requirements:', error);
+      log.error('Error parsing device requirements:', error);
     }
 
     return [];

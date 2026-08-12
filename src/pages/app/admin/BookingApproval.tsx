@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import type { ParsedJmlDevice } from "@/lib/jml-booking-device-details";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -176,7 +177,7 @@ const BookingApproval = () => {
     if (!history?.length) return [];
 
     const serials = new Set<string>();
-    for (const h of history as any[]) {
+    for (const h of history) {
       const notes = (h?.notes || '').toString();
 
       // Example: "Allocated 2 device(s): SN1, SN2"
@@ -627,7 +628,7 @@ const BookingApproval = () => {
               <div>
                 <p className="font-medium">Scheduled Date</p>
                 <p className="text-muted-foreground">
-                  {new Date(booking.scheduledDate).toLocaleDateString("en-GB", {
+                  {new Date(booking.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                     weekday: "long",
                     year: "numeric",
                     month: "long",
@@ -763,7 +764,7 @@ const BookingApproval = () => {
                               <div className="flex items-start justify-between gap-3">
                                 <div className="space-y-1 min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <Badge className={cn("text-xs", gradeColor(r.grade as any))}>
+                                    <Badge className={cn("text-xs", gradeColor(r.grade))}>
                                       Grade {r.grade}
                                     </Badge>
                                     <Badge variant="outline" className="text-xs">
@@ -897,9 +898,9 @@ const BookingApproval = () => {
                         <p className="text-sm font-medium text-muted-foreground">Replacement Device Requirements</p>
                         {replacementDeviceDetails.length > 0 ? (
                           <div className="space-y-3">
-                            {replacementDeviceDetails.map((device: any, index: number) => {
+                            {replacementDeviceDetails.map((device: ParsedJmlDevice, index: number) => {
                               const matchingItems = isDeliveredJmlFinalReview
-                                ? (deliveredInventoryItems as any[]).filter((i) =>
+                                ? deliveredInventoryItems.filter((i) =>
                                     jmlInventoryCategoryMatchesDevice(String(device?.category || ""), String(i?.category || ""))
                                   )
                                 : [];
@@ -978,9 +979,9 @@ const BookingApproval = () => {
                         <p className="text-sm font-medium text-muted-foreground">Broken/Damaged Devices</p>
                         {brokenDeviceDetails.length > 0 ? (
                           <div className="space-y-3">
-                            {brokenDeviceDetails.map((device: any, index: number) => {
+                            {brokenDeviceDetails.map((device: ParsedJmlDevice, index: number) => {
                               const matchingItems = isDeliveredJmlFinalReview
-                                ? (deliveredInventoryItems as any[]).filter((i) =>
+                                ? deliveredInventoryItems.filter((i) =>
                                     jmlInventoryCategoryMatchesDevice(String(device?.category || ""), String(i?.category || ""))
                                   )
                                 : [];
@@ -1057,9 +1058,9 @@ const BookingApproval = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {brokenDeviceDetails.map((device: any, index: number) => {
+                      {brokenDeviceDetails.map((device: ParsedJmlDevice, index: number) => {
                         const matchingItems = isDeliveredJmlFinalReview
-                          ? (deliveredInventoryItems as any[]).filter((i) =>
+                          ? deliveredInventoryItems.filter((i) =>
                               jmlInventoryCategoryMatchesDevice(String(device?.category || ""), String(i?.category || ""))
                             )
                           : [];
@@ -1403,3 +1404,5 @@ const BookingApproval = () => {
 
 export default BookingApproval;
 
+
+import { UK_TIME_ZONE } from '@/lib/datetime';

@@ -1,4 +1,7 @@
 import { useParams, Link } from "react-router-dom";
+import { log } from '@/lib/log';
+import type { Booking } from "@/mocks/mock-entities";
+import type { ParsedJmlDevice } from "@/lib/jml-booking-device-details";
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, MapPin, Package, Truck, Route, Fuel, PackageSearch, Loader2, CheckCircle2, Shield, Award, FileCheck, User, Phone, Smartphone, Warehouse, Navigation, FileText, Download, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,7 +31,7 @@ import { getStatusLabelExtended, getStatusColor, getSanitisedTimelineStep } from
 import type { BookingLifecycleStatus } from "@/types/booking-lifecycle";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { useDriver } from "@/hooks/useDrivers";
@@ -38,6 +41,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUnderlyingAssetCategoryNameForJml } from "@/lib/jml-assets";
 import type { AssetCategory } from "@/types/jobs";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 type NewAssetLine = { key: string; categoryId: string; quantity: number };
 
@@ -160,6 +164,18 @@ function getTimelineSteps(
   ];
 }
 
+/**
+ * An asset row as the detail table renders it: the API asset plus the JML
+ * device details merged in for display. Deliberately distinct from
+ * `Booking["assets"]`, which is the wire shape.
+ */
+type DisplayAsset = Booking["assets"][number] & {
+  deviceMake?: string;
+  deviceModel?: string;
+  deviceType?: string;
+  deviceNotes?: string;
+};
+
 const BookingDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -214,7 +230,7 @@ const BookingDetail = () => {
     if (!booking) return map;
     
     // Type assertion: statusHistory exists in API response but not in type definition
-    const statusHistory = (booking as any).statusHistory as Array<{
+    const statusHistory = booking.statusHistory as Array<{
       id: string;
       status: string;
       changedBy?: string;
@@ -232,7 +248,7 @@ const BookingDetail = () => {
           const deviceDetailsMatch = creationHistory.notes.match(/Device details:\s*(\[.*?\])/);
           if (deviceDetailsMatch) {
             const deviceDetails = JSON.parse(deviceDetailsMatch[1]);
-            deviceDetails.forEach((device: any) => {
+            deviceDetails.forEach((device: ParsedJmlDevice) => {
               const rawCategory = String(device.category || "");
               const quantity = typeof device.quantity === "number" ? device.quantity : (device.quantity ? Number(device.quantity) : 1);
               const notes = device.notes ? String(device.notes) : undefined;
@@ -261,7 +277,7 @@ const BookingDetail = () => {
           }
         } catch (error) {
           // If parsing fails, return empty map
-          console.error('Failed to parse device details from status history:', error);
+          log.error('Failed to parse device details from status history:', error);
         }
       }
     }
@@ -271,16 +287,16 @@ const BookingDetail = () => {
 
   // For breakfix bookings, extract replacement requirements as well as broken device details.
   const replacementDeviceDetails = useMemo(() => {
-    const empty: any[] = [];
+    const empty: ParsedJmlDevice[] = [];
     if (!booking) return empty;
 
-    const statusHistory = (booking as any).statusHistory as Array<{
+    const statusHistory = booking.statusHistory as Array<{
       notes?: string;
     }> | undefined;
 
     if (!statusHistory || statusHistory.length === 0) return empty;
 
-    const creationHistory = statusHistory.find((h: any) => h.notes && h.notes.includes('Replacement Device details:'));
+    const creationHistory = statusHistory.find((h) => h.notes && h.notes.includes('Replacement Device details:'));
     if (!creationHistory?.notes) return empty;
 
     try {
@@ -322,11 +338,11 @@ const BookingDetail = () => {
     if (!booking) return enrichedAssets;
 
     const bookingAssetCategoryNames = new Set(
-      (booking.assets || []).map((a: any) => String(a.categoryName || "").toLowerCase())
+      (booking.assets || []).map((a) => String(a.categoryName || "").toLowerCase())
     );
 
     const accessoryKeys = new Set(["accessory", "accessories"]);
-    const accessoryAssets: Array<any> = [];
+    const accessoryAssets: DisplayAsset[] = [];
 
     for (const [category, info] of deviceDetailsMap.entries()) {
       const key = category.toLowerCase();
@@ -338,6 +354,7 @@ const BookingDetail = () => {
       if (!info?.notes?.trim()) continue;
 
       accessoryAssets.push({
+        categoryId: "",
         categoryName: category,
         quantity: info.quantity || 1,
         deviceMake: undefined,
@@ -352,11 +369,11 @@ const BookingDetail = () => {
 
   const editableAssets = useMemo(() => {
     if (!booking?.assets) return [];
-    return booking.assets.filter((a: any) => !!a.id);
+    return booking.assets.filter((a) => !!a.id);
   }, [booking?.assets]);
 
   const bookedCategoryIds = useMemo(
-    () => new Set((booking?.assets || []).map((a: any) => String(a.categoryId || ""))),
+    () => new Set((booking?.assets || []).map((a) => String(a.categoryId || ""))),
     [booking?.assets]
   );
 
@@ -381,7 +398,7 @@ const BookingDetail = () => {
   };
 
   const buildAssetUpdatePayload = () => {
-    const updates = editableAssets.map((a: any) => ({
+    const updates = editableAssets.map((a) => ({
       assetId: a.id,
       quantity: Number(assetQuantities[a.id] ?? a.quantity),
     }));
@@ -756,7 +773,7 @@ const BookingDetail = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Scheduled Date</p>
                   <p className="font-medium">
-                    {new Date(booking.scheduledDate).toLocaleDateString("en-GB", {
+                    {new Date(booking.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                       weekday: "long",
                       day: "numeric",
                       month: "long",
@@ -905,7 +922,7 @@ const BookingDetail = () => {
                     onClick={() => {
                       if (!isEditingAssets) {
                         const initial: Record<string, number> = {};
-                        editableAssets.forEach((a: any) => {
+                        editableAssets.forEach((a) => {
                           initial[a.id] = a.quantity;
                         });
                         setAssetQuantities(initial);
@@ -941,16 +958,16 @@ const BookingDetail = () => {
                         <Package className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{asset.categoryName}</span>
                       </div>
-                      {isEditingAssets && user?.isSuperAdmin && (asset as any).id ? (
+                      {isEditingAssets && user?.isSuperAdmin && asset.id ? (
                         <Input
                           type="number"
                           min={1}
                           className="w-24 h-8"
-                          value={assetQuantities[(asset as any).id] ?? asset.quantity}
+                          value={assetQuantities[asset.id] ?? asset.quantity}
                           onChange={(e) =>
                             setAssetQuantities((prev) => ({
                               ...prev,
-                              [(asset as any).id]: Number(e.target.value),
+                              [asset.id]: Number(e.target.value),
                             }))
                           }
                         />
@@ -1095,7 +1112,7 @@ const BookingDetail = () => {
               <CardContent>
                 <div className="space-y-3">
                   {replacementDeviceDetails.length > 0 ? (
-                    replacementDeviceDetails.map((device: any, index: number) => {
+                    replacementDeviceDetails.map((device: ParsedJmlDevice, index: number) => {
                       const deviceInfo =
                         [device.make, device.model, device.deviceType].filter(Boolean).join(' • ') ||
                         (device.notes?.trim() ? device.notes.trim() : 'Accessories');

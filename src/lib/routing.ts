@@ -1,3 +1,4 @@
+import { log } from '@/lib/log';
 // Road distance calculation using routing APIs (client-side)
 // Falls back to straight-line distance with multiplier if routing API is unavailable
 
@@ -42,7 +43,7 @@ async function calculateRoadDistanceOSRM(
 
     return null;
   } catch (error) {
-    console.warn('OSRM routing API error:', error instanceof Error ? error.message : 'Unknown error');
+    log.warn('OSRM routing API error:', error instanceof Error ? error.message : 'Unknown error');
     return null;
   }
 }
@@ -96,7 +97,7 @@ export async function calculateRoadDistance(
   const straightDistance = calculateStraightLineDistance(lat1, lon1, lat2, lon2);
   const estimatedRoadDistance = straightDistance * 1.3; // 30% increase as approximation
   
-  console.warn(
+  log.warn(
     `Routing API unavailable, using estimated road distance (${estimatedRoadDistance.toFixed(2)}km) ` +
     `based on straight-line distance (${straightDistance.toFixed(2)}km)`
   );

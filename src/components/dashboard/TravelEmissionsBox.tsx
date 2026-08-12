@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Truck, Fuel, Zap, MapPin, Loader2 } from "lucide-react";
+import { Truck, Fuel, MapPin, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardStats } from "@/hooks/useJobs";
 import { kmToMiles } from "@/lib/calculations";
@@ -25,7 +25,12 @@ export function TravelEmissionsBox() {
     );
   }
 
-  const { petrol, diesel, electric, totalDistanceKm, totalDistanceMiles } = stats.travelEmissions;
+  // The per-fuel split this card used to show was fabricated: the backend took
+  // the single recorded emissions total and multiplied it by (0.21 / 0.24) and
+  // (0.19 / 0.24), i.e. it assumed every job used a van and then presented the
+  // rescaled numbers as if petrol and diesel fleets had each done the work. It
+  // now reports the emissions actually recorded against the jobs.
+  const { total, totalDistanceKm, totalDistanceMiles } = stats.travelEmissions;
 
   return (
     <motion.div
@@ -55,38 +60,18 @@ export function TravelEmissionsBox() {
             Round trip from collection sites to warehouse (RM13 8BT)
           </div>
 
-          {/* Vehicle Emissions */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 rounded-lg border bg-background">
-              <div className="flex items-center gap-2 mb-2">
-                <Fuel className="h-4 w-4 text-orange-500" />
-                <span className="text-xs font-semibold text-muted-foreground">Petrol</span>
-              </div>
-              <p className="text-xl font-bold text-foreground">
-                {petrol.toFixed(1)}kg
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">CO₂e</p>
+          {/* Recorded collection travel emissions */}
+          <div className="p-3 rounded-lg border bg-background">
+            <div className="flex items-center gap-2 mb-2">
+              <Fuel className="h-4 w-4 text-orange-500" />
+              <span className="text-xs font-semibold text-muted-foreground">
+                Collection travel emissions
+              </span>
             </div>
-            <div className="p-3 rounded-lg border bg-background">
-              <div className="flex items-center gap-2 mb-2">
-                <Fuel className="h-4 w-4 text-blue-500" />
-                <span className="text-xs font-semibold text-muted-foreground">Diesel</span>
-              </div>
-              <p className="text-xl font-bold text-foreground">
-                {diesel.toFixed(1)}kg
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">CO₂e</p>
-            </div>
-            <div className="p-3 rounded-lg border bg-background">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="h-4 w-4 text-green-500" />
-                <span className="text-xs font-semibold text-muted-foreground">Electric</span>
-              </div>
-              <p className="text-xl font-bold text-success">
-                {electric.toFixed(1)}kg
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">CO₂e</p>
-            </div>
+            <p className="text-2xl font-bold text-foreground">{total.toFixed(1)}kg</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              CO₂e, from each job&apos;s actual vehicle and distance
+            </p>
           </div>
         </CardContent>
       </Card>

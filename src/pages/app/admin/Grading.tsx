@@ -14,15 +14,19 @@ import { useBooking, useUpdateBookingStatus } from "@/hooks/useBookings";
 import { useGradingRecords, useCreateGradingRecord, useCalculateResaleValue, useCalculateResaleValueFn } from "@/hooks/useGrading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { categoryRequiresImei, getUnderlyingAssetCategoryNameForJml } from "@/lib/jml-assets";
-import { buildJmlDeviceDetailsMapFromBooking } from "@/lib/jml-booking-device-details";
+import { type ParsedJmlDevice, buildJmlDeviceDetailsMapFromBooking } from "@/lib/jml-booking-device-details";
 import { compareGradingSerialVsInventory } from "@/lib/serial-inventory-compare";
 import { SerialInventorySnapshot } from "@/components/inventory/SerialInventorySnapshot";
 import { inventoryService, type InventoryLookupResult } from "@/services/inventory.service";
 
-const grades: { value: 'A' | 'B' | 'C' | 'D' | 'Q'; label: string; color: string }[] = [
+type GradeValue = 'A' | 'B' | 'C' | 'D' | 'Q';
+const isGradeValue = (value: string): value is GradeValue =>
+  value === 'A' || value === 'B' || value === 'C' || value === 'D' || value === 'Q';
+
+const grades: { value: GradeValue; label: string; color: string }[] = [
   { value: 'A', label: 'Grade A', color: 'bg-success/10 text-success' },
   { value: 'B', label: 'Grade B', color: 'bg-info/10 text-info' },
   { value: 'C', label: 'Grade C', color: 'bg-warning/10 text-warning' },
@@ -47,7 +51,7 @@ const Grading = () => {
   
   // State declarations must come before they're used
   const [selectedAssetId, setSelectedAssetId] = useState<string>("");
-  const [grade, setGrade] = useState<string>("");
+  const [grade, setGrade] = useState<GradeValue | "">("");
   const [condition, setCondition] = useState<string>(""); // conditionCode
   const [notes, setNotes] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
@@ -93,7 +97,7 @@ const Grading = () => {
     const map = new Map<string, { make?: string; model?: string; deviceType?: string; notes?: string }>();
     if (!booking) return map;
 
-    const statusHistory = (booking as any).statusHistory as Array<{ notes?: string }> | undefined;
+    const statusHistory = booking.statusHistory;
     if (!statusHistory?.length) return map;
 
     const isBreakfix = booking?.jmlSubType === 'breakfix';
@@ -115,7 +119,7 @@ const Grading = () => {
       if (!deviceDetailsMatch) return map;
 
       const deviceDetails = JSON.parse(deviceDetailsMatch[1]);
-      deviceDetails.forEach((device: any) => {
+      deviceDetails.forEach((device: ParsedJmlDevice) => {
         if (!device?.category) return;
 
         const rawCategory = String(device.category).trim();
@@ -344,7 +348,7 @@ const Grading = () => {
 
   const { data: estimatedResaleValue = 0 } = useCalculateResaleValue(
     selectedAsset?.categoryName || selectedAsset?.categoryId,
-    grade as any,
+    grade || undefined,
     quantity || 0
   );
 
@@ -432,14 +436,14 @@ const Grading = () => {
       }
     }
 
-    const resaleValue = await calculateResaleValueFn(asset.categoryName || asset.categoryId, grade as any, quantity);
+    const resaleValue = await calculateResaleValueFn(asset.categoryName || asset.categoryId, grade, quantity);
 
     createRecord.mutate(
       {
         bookingId: id,
         assetId: selectedAssetId,
         assetCategory: asset.categoryName || asset.categoryId, // Use category name, fallback to ID
-        grade: grade as any,
+        grade,
         gradedBy: user.id,
         condition: isItadBooking || isAccessoryCategory ? undefined : (finalCondition || undefined),
         notes: notes || undefined,
@@ -613,7 +617,7 @@ const Grading = () => {
                       ? `/admin/booking-inventory/${id}`
                       : `/booking-review/${id}`;
                   updateBookingStatus.mutate(
-                    { bookingId: id, status: nextStatus as any },
+                    { bookingId: id, status: nextStatus },
                     {
                       onSuccess: () => {
                         toast.success(`Booking moved to ${nextStatus} status`, {
@@ -692,7 +696,7 @@ const Grading = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="grade">Grade *</Label>
-                <Select value={grade} onValueChange={setGrade}>
+                <Select value={grade} onValueChange={(v) => { if (isGradeValue(v)) setGrade(v); }}>
                   <SelectTrigger id="grade">
                     <SelectValue placeholder="Select grade..." />
                   </SelectTrigger>

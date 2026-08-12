@@ -2,8 +2,17 @@
 import type { Job } from '@/types/jobs';
 import type { Booking } from '@/mocks/mock-entities';
 import { ApiError, ApiErrorType } from './api-error';
-import { apiClient } from './api-client';
+import { apiClient, type Paginated } from './api-client';
 import type { User } from '@/types/auth';
+
+export interface BookingListFilter {
+  status?: string;
+  clientId?: string;
+  searchQuery?: string;
+  page?: number;
+  /** Server caps this at 100. */
+  limit?: number;
+}
 
 export interface BookingRequest {
   clientId?: string; // For resellers: specify which client this booking is for
@@ -72,20 +81,31 @@ class BookingService {
     }
   }
 
-  async getBookings(user?: User | null, filter?: { status?: string; clientId?: string }): Promise<Booking[]> {
+  private buildBookingQuery(filter?: BookingListFilter): string {
     const params = new URLSearchParams();
-    if (filter?.status) {
-      params.append('status', filter.status);
-    }
-    if (filter?.clientId) {
-      params.append('clientId', filter.clientId);
-    }
+    if (filter?.status) params.append('status', filter.status);
+    if (filter?.clientId) params.append('clientId', filter.clientId);
+    if (filter?.searchQuery) params.append('searchQuery', filter.searchQuery);
+    if (filter?.page) params.append('page', String(filter.page));
+    if (filter?.limit) params.append('limit', String(filter.limit));
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  }
 
-    const queryString = params.toString();
-    const endpoint = `/bookings${queryString ? `?${queryString}` : ''}`;
-    
-    const bookings = await apiClient.get<Booking[]>(endpoint);
-    return bookings;
+  /**
+   * Page of bookings, with the pagination envelope kept.
+   *
+   * The previous version sent no page/limit and returned only the rows, so the
+   * caller received the server default of 20 records with no way to know more
+   * existed or to reach them.
+   */
+  async getBookingsPage(filter?: BookingListFilter): Promise<Paginated<Booking>> {
+    return apiClient.getPaginated<Booking>(`/bookings${this.buildBookingQuery(filter)}`);
+  }
+
+  async getBookings(user?: User | null, filter?: BookingListFilter): Promise<Booking[]> {
+    const { data } = await this.getBookingsPage(filter);
+    return data;
   }
 
   async getBookingById(id: string): Promise<Booking | null> {
@@ -159,6 +179,17 @@ class BookingService {
     reason?: string
   ): Promise<Booking> {
     return apiClient.patch<Booking>(`/bookings/${bookingId}/assets`, { assets, reason });
+  }
+
+  async updateErpJobNumber(
+    bookingId: string,
+    erpJobNumber: string,
+    reason?: string
+  ): Promise<Booking> {
+    return apiClient.patch<Booking>(`/bookings/${bookingId}/erp-job-number`, {
+      erpJobNumber,
+      reason,
+    });
   }
 }
 

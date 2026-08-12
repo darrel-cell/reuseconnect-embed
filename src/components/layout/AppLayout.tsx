@@ -12,8 +12,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useNotifications } from "@/contexts/NotificationContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/notification-context";
+import { useAuth } from "@/contexts/auth-context";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -23,6 +23,8 @@ const pageTitles: Record<string, string> = {
   "/jobs/history": "Job History",
   "/co2e": "CO₂e Dashboard",
   "/documents": "Compliance Documents",
+  "/settings": "Settings",
+  "/profile": "Profile",
 };
 
 

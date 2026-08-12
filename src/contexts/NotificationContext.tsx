@@ -1,31 +1,14 @@
 // Notification Context for shared state
-import { createContext, useContext, ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from './AuthContext';
+import { useAuth } from './auth-context';
 import { notificationsService } from '@/services/notifications.service';
+import { log } from '@/lib/log';
+import { NotificationContext, type NotificationContextType , type Notification } from './notification-context';
 
 // Notification type definition
-export interface Notification {
-  id: string;
-  type: 'success' | 'warning' | 'info' | 'error';
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  url?: string;
-}
 
-interface NotificationContextType {
-  notifications: Notification[];
-  unreadCount: number;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  deleteNotification: (id: string) => void;
-  refreshNotifications: () => void;
-  isMarkingAllAsRead: boolean;
-}
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 // Fallback notifications for mock mode
 const getNotificationsByRole = (role: string): Notification[] => {
@@ -131,7 +114,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const result = await notificationsService.getNotifications();
         return result;
       } catch (error) {
-        console.error('[NotificationContext] Failed to fetch notifications:', error);
+        log.error('[NotificationContext] Failed to fetch notifications:', error);
         // Return empty notifications on error
         return { notifications: [], total: 0 };
       }
@@ -149,7 +132,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       try {
         return await notificationsService.getUnreadCount();
       } catch (error) {
-        console.error('Failed to fetch unread count:', error);
+        log.error('Failed to fetch unread count:', error);
         return 0;
       }
     },
@@ -229,11 +212,4 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useNotifications() {
-  const context = useContext(NotificationContext);
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
-  }
-  return context;
-}
 

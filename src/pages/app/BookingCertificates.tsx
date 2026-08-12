@@ -6,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBooking } from "@/hooks/useBookings";
 import { useJob } from "@/hooks/useJobs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useSanitisationRecords } from "@/hooks/useSanitisation";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { UK_TIME_ZONE } from '@/lib/datetime';
 
 const sanitisationMethods = [
   { value: 'blancco', label: 'Blancco Software Wipe' },
@@ -190,7 +191,7 @@ const BookingCertificates = () => {
                               <span className="text-muted-foreground">Certificate ID:</span> <span className="font-mono font-medium text-foreground">{record.certificateId}</span>
                             </p>
                             <p>
-                              <span className="text-muted-foreground">Sanitised:</span> <span className="text-foreground">{new Date(record.timestamp).toLocaleString("en-GB", {
+                              <span className="text-muted-foreground">Sanitised:</span> <span className="text-foreground">{new Date(record.timestamp).toLocaleString("en-GB", { timeZone: UK_TIME_ZONE,
                                 day: "numeric",
                                 month: "long",
                                 year: "numeric",

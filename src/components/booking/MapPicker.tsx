@@ -8,8 +8,14 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { log } from '@/lib/log';
 
 // Fix for default marker icon in React/Leaflet
+// Leaflet resolves its default marker icons from a private field that its
+// own types do not expose; deleting it is the documented way to stop the
+// bundler-mangled URLs being used. There is no public API for this, so the
+// cast is unavoidable rather than lazy.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
@@ -88,7 +94,7 @@ function MapClickHandler({
           const data = await response.json();
           
           // Debug: Log the response to see what fields are available
-          // console.log('Nominatim response:', JSON.stringify(data, null, 2));
+          // log.debug('Nominatim response:', JSON.stringify(data, null, 2));
           if (data.display_name && onAddressChange) {
             onAddressChange(data.display_name);
           }
@@ -238,7 +244,7 @@ function MapClickHandler({
             });
           }
         } catch (error) {
-          console.error("Reverse geocoding error:", error);
+          log.error("Reverse geocoding error:", error);
         } finally {
           setIsGeocoding(false);
         }
@@ -314,7 +320,7 @@ export function MapPicker({
           setShowSuggestions(true);
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
       } finally {
         setIsSearching(false);
       }
@@ -357,7 +363,7 @@ export function MapPicker({
         setSearchQuery(result.display_name);
       }
     } catch (error) {
-      console.error("Geocoding error:", error);
+      log.error("Geocoding error:", error);
     } finally {
       setIsSearching(false);
     }

@@ -1,5 +1,6 @@
 // CO₂ Calculation Service
 import { apiClient } from './api-client';
+import { log } from '@/lib/log';
 
 export interface CO2CalculationRequest {
   assets: Array<{
@@ -95,7 +96,7 @@ const co2eEquivalencies = {
 
 class CO2Service {
   async calculateCO2e(request: CO2CalculationRequest): Promise<CO2CalculationResponse> {
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       assets: request.assets,
     };
 
@@ -120,7 +121,7 @@ class CO2Service {
       const response = await apiClient.get<CO2CalculationResponse>(`/co2/job/${jobId}`);
       return response;
     } catch (error) {
-      console.error('Failed to fetch CO₂e data for job:', error);
+      log.error('Failed to fetch CO₂e data for job:', error);
       return null;
     }
   }

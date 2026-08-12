@@ -20,7 +20,7 @@ import { Mail } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useClients, useClientProfile } from "@/hooks/useClients";
 import { useSites, useCreateSite } from "@/hooks/useSites";
 import { geocodeAddressWithDetails } from "@/lib/calculations";
@@ -29,6 +29,7 @@ import { MapPicker } from "@/components/booking/MapPicker";
 import { cn } from "@/lib/utils";
 import { filterJmlAssetCategories, getDeviceTypeOptionsForJmlCategory, getUnderlyingAssetCategoryNameForJml, inferDeviceTypeFromJmlCategory, isAccessoriesCategory, shouldShowDeviceTypeForJmlCategory, type JmlDeviceType } from "@/lib/jml-assets";
 import { co2eEquivalencies } from "@/lib/constants";
+import { log } from '@/lib/log';
 
 interface BrokenDevice {
   make: string;
@@ -243,7 +244,7 @@ const JMLBreakfix = () => {
           }
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
+        log.error("Geocoding error:", error);
         setSiteLocation(null);
       } finally {
         setIsGeocodingAddress(false);
@@ -251,7 +252,7 @@ const JMLBreakfix = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [siteDetails.postcode, selectedSiteId]);
+  }, [siteDetails.postcode, siteDetails.country, selectedSiteId]);
 
   // Handle site selection (like ITAD booking)
   const handleSiteSelect = (siteId: string) => {

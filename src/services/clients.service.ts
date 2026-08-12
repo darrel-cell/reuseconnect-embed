@@ -52,7 +52,10 @@ class ClientsService {
       const response = await apiClient.get<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; hasProfile: boolean }>('/clients/profile/me');
       return response;
     } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
+      // ApiError carries `statusCode`, not `status`. Reading the wrong property
+      // made this `undefined === 404`, so a client with no profile row got an
+      // exception instead of the null that starts the profile-completion flow.
+      if (error instanceof ApiError && error.statusCode === 404) {
         return null;
       }
       throw error;

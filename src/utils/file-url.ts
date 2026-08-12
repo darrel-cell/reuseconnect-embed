@@ -1,5 +1,6 @@
 // Utility functions for handling file URLs
 import { API_BASE_URL } from '@/lib/config';
+import { log } from '@/lib/log';
 
 // Cache for blob URLs to avoid memory leaks
 const blobUrlCache = new Map<string, string>();
@@ -18,7 +19,7 @@ function convertDataUrlToBlobUrl(dataUrl: string): string {
     // Extract the base64 data and mime type
     const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!matches) {
-      console.warn('Invalid data URL format:', dataUrl.substring(0, 50) + '...');
+      log.warn('Invalid data URL format:', dataUrl.substring(0, 50) + '...');
       return dataUrl; // Return original if we can't parse it
     }
 
@@ -42,7 +43,7 @@ function convertDataUrlToBlobUrl(dataUrl: string): string {
     
     return blobUrl;
   } catch (error) {
-    console.error('Failed to convert data URL to blob URL:', error);
+    log.error('Failed to convert data URL to blob URL:', error);
     return dataUrl; // Return original on error
   }
 }
@@ -61,7 +62,7 @@ function convertDataUrlToBlobUrl(dataUrl: string): string {
 export function getAuthenticatedFileUrl(fileUrl: string | null | undefined, forNewTab: boolean = false): string {
   // Handle null/undefined - return a placeholder to prevent about:blank
   if (!fileUrl || typeof fileUrl !== 'string' || fileUrl.trim() === '') {
-    console.warn('getAuthenticatedFileUrl: Received empty or invalid fileUrl', fileUrl);
+    log.warn('getAuthenticatedFileUrl: Received empty or invalid fileUrl', fileUrl);
     return '#';
   }
 
@@ -69,7 +70,7 @@ export function getAuthenticatedFileUrl(fileUrl: string | null | undefined, forN
   
   // Debug logging (can be removed in production)
   if (process.env.NODE_ENV === 'development') {
-    console.debug('getAuthenticatedFileUrl input:', trimmedUrl.substring(0, 100), 'forNewTab:', forNewTab);
+    log.debug('getAuthenticatedFileUrl input:', trimmedUrl.substring(0, 100), 'forNewTab:', forNewTab);
   }
 
   // If it's already a full URL (http/https), return as is
@@ -103,7 +104,7 @@ export function getAuthenticatedFileUrl(fileUrl: string | null | undefined, forN
   if (trimmedUrl.startsWith('evidence/') || trimmedUrl.startsWith('documents/')) {
     const fullUrl = `${baseUrl}/uploads/${trimmedUrl}`;
     if (process.env.NODE_ENV === 'development') {
-      console.debug('getAuthenticatedFileUrl: Converted S3 key to:', fullUrl);
+      log.debug('getAuthenticatedFileUrl: Converted S3 key to:', fullUrl);
     }
     return fullUrl;
   }
@@ -129,12 +130,12 @@ export function getAuthenticatedFileUrl(fileUrl: string | null | undefined, forN
   
   // Final validation - ensure we have a valid URL
   if (!finalUrl || finalUrl === '#' || finalUrl === baseUrl || finalUrl === `${baseUrl}/uploads/`) {
-    console.error('getAuthenticatedFileUrl: Generated invalid URL', { fileUrl, finalUrl, baseUrl });
+    log.error('getAuthenticatedFileUrl: Generated invalid URL', { fileUrl, finalUrl, baseUrl });
     return '#';
   }
   
   if (process.env.NODE_ENV === 'development') {
-    console.debug('getAuthenticatedFileUrl output:', finalUrl);
+    log.debug('getAuthenticatedFileUrl output:', finalUrl);
   }
   
   return finalUrl;

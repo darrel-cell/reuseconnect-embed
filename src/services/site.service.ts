@@ -1,5 +1,5 @@
 // Site Service
-import { apiClient } from './api-client';
+import { apiClient, type Paginated } from './api-client';
 
 export interface Site {
   id: string;
@@ -43,6 +43,23 @@ export interface UpdateSiteRequest {
 }
 
 class SiteService {
+  /**
+   * A page of sites, keeping the envelope.
+   *
+   * `/sites` had no server-side pagination at all and returned every row; it now
+   * pages like the other lists, so this is the call any screen showing a table
+   * should use. `getSites` below still returns the first page's rows only, for
+   * pickers and dropdowns.
+   */
+  async getSitesPage(filter?: { clientId?: string; page?: number; limit?: number }): Promise<Paginated<Site>> {
+    const params = new URLSearchParams();
+    if (filter?.clientId) params.append('clientId', filter.clientId);
+    if (filter?.page) params.append('page', String(filter.page));
+    if (filter?.limit) params.append('limit', String(filter.limit));
+    const qs = params.toString();
+    return apiClient.getPaginated<Site>(`/sites${qs ? `?${qs}` : ''}`);
+  }
+
   async getSites(clientId?: string): Promise<Site[]> {
     const params = new URLSearchParams();
     if (clientId) {

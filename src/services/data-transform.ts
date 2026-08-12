@@ -3,7 +3,7 @@ import type { Job, Asset, Driver, Evidence, Certificate } from '@/types/jobs';
 import type { WorkflowStatus } from '@/types/jobs';
 
 // Backend job format (from API; clientName removed, organisationName is the company name)
-interface BackendJob {
+export interface BackendJob {
   id: string;
   erpJobNumber: string;
   bookingId?: string | null;
