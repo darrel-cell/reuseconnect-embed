@@ -32,6 +32,9 @@ import { useAuth } from "@/contexts/auth-context";
 import { useSitesPage, useCreateSite, useUpdateSite, useDeleteSite } from "@/hooks/useSites";
 import { useClients } from "@/hooks/useClients";
 import { ListPagination } from "@/components/common/ListPagination";
+import { ViewModeToggle } from "@/components/common/ViewModeToggle";
+import { InfoTooltip } from "@/components/common/InfoTooltip";
+import { usePersistedViewMode } from "@/hooks/usePersistedViewMode";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { geocodePostcode } from "@/lib/calculations";
@@ -82,6 +85,7 @@ const Sites = () => {
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [sitesPage, setSitesPage] = useState(1);
   const [sitesLimit, setSitesLimit] = useState(20);
+  const [viewMode, setViewMode] = usePersistedViewMode("sites-view", "card");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -978,11 +982,26 @@ const Sites = () => {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Site Management</h2>
-          <p className="text-muted-foreground">
-            {isAdmin 
-              ? "Manage all site addresses across clients" 
-              : "Manage your site addresses"}
+          <p className="flex items-center gap-1.5 text-muted-foreground">
+            <span>
+              {isAdmin
+                ? "Manage all site addresses across clients"
+                : "Manage your site addresses"}
+            </span>
+            <InfoTooltip
+              label="Site management help"
+              content={
+                <div className="space-y-1.5">
+                  <p className="font-semibold">Sites</p>
+                  <p>
+                    Sites are collection and delivery addresses used when creating bookings.
+                  </p>
+                  <p>
+                    Add a verified address with postcode and optional contact details so bookings can be scheduled accurately.
+                  </p>
+                </div>
+              }
+            />
           </p>
         </div>
         <Button onClick={handleCreate}>
@@ -1022,6 +1041,7 @@ const Sites = () => {
             </SelectContent>
           </Select>
         )}
+        <ViewModeToggle value={viewMode} onChange={setViewMode} className="self-end sm:self-auto" />
       </motion.div>
 
       {/* Sites List */}
@@ -1038,6 +1058,83 @@ const Sites = () => {
               Create your first site address to get started
             </p>
           )}
+        </div>
+      ) : viewMode === "list" ? (
+        <div className="space-y-2">
+          {filteredSites.map((site, index) => (
+            <motion.div
+              key={site.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(index * 0.03, 0.15) }}
+            >
+              <Card className="hover:shadow-sm transition-shadow">
+                <CardContent className="flex items-center gap-3 py-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <p className="truncate text-sm font-semibold text-foreground">{site.name}</p>
+                      {isAdmin && site.client && (
+                        <span className="inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                          <Building2 className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{site.client.organisationName || site.client.name}</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm text-muted-foreground sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.55fr)_minmax(0,1fr)]">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                        <span className="truncate" title={site.address}>{site.address}</span>
+                      </div>
+                      <div className="truncate" title={site.postcode}>{site.postcode}</div>
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                        {(site.contactName || site.contactPhone) ? (
+                          <>
+                            {site.contactName && (
+                              <span className="inline-flex min-w-0 max-w-full items-center gap-1 truncate">
+                                <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                                <span className="truncate">{site.contactName}</span>
+                              </span>
+                            )}
+                            {site.contactPhone && (
+                              <span className="inline-flex min-w-0 max-w-full items-center gap-1 truncate">
+                                <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                                <span className="truncate">{site.contactPhone}</span>
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(site)}
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span className="sr-only">Edit site</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(site)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Delete site</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

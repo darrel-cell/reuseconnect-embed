@@ -572,7 +572,6 @@ const DeviceAllocation = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Allocate Devices</h2>
           <p className="text-muted-foreground">Allocate devices from inventory for {subTypeLabels[booking.jmlSubType || '']} booking</p>
         </div>
       </motion.div>

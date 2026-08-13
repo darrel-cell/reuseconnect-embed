@@ -27,7 +27,6 @@ export default function AuditLogs() {
 
   return (
     <div className="p-6 space-y-4" data-main-content>
-      <h1 className="text-2xl font-semibold">Audit Logs</h1>
       <p className="text-sm text-muted-foreground">
         Track who changed what, when, and why.
       </p>

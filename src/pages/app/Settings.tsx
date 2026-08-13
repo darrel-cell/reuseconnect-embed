@@ -86,7 +86,6 @@ const Settings = () => {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h2 className="text-2xl font-bold text-foreground">Settings</h2>
         <p className="text-muted-foreground">
           Manage your account security, notification preferences, and platform configuration
         </p>

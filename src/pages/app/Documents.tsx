@@ -249,7 +249,6 @@ const Documents = () => {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Compliance Documents</h2>
           <p className="text-muted-foreground">Open a job to view and download its documents</p>
         </div>
       </motion.div>

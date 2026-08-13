@@ -199,7 +199,6 @@ function BookingInventory() {
           </Link>
         </Button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Inventory Processing</h2>
           <p className="text-muted-foreground">{booking.bookingNumber}</p>
         </div>
         <Badge className={cn("bg-green-500/10 text-green-500", "px-3 py-1")}>

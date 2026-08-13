@@ -1,7 +1,6 @@
 import { 
   LayoutDashboard, 
   Plus, 
-  Truck, 
   Leaf, 
   FileText, 
   Building2,
@@ -10,14 +9,12 @@ import {
   Clock,
   Route as RouteIcon,
   MapPin,
-  Icon,
   Briefcase,
   Package,
   ChevronUp,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
-import { steeringWheel } from "@lucide/lab";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -45,21 +42,14 @@ const SIDEBAR_CATEGORY_STATE_KEY = "sidebar-category-state";
 type NavCategoryId =
   | "operations"
   | "organization"
-  | "fleet"
   | "warehouse"
   | "documents"
   | "co2";
 
-const SteeringWheelIcon = ({ className }: { className?: string }) => {
-  return <Icon iconNode={steeringWheel} className={className} />;
-};
-
-type NavIcon = LucideIcon | typeof SteeringWheelIcon;
-
 type NavItem = {
   title: string;
   url: string;
-  icon: NavIcon;
+  icon: LucideIcon;
   roles: string[];
   category?: NavCategoryId;
 };
@@ -71,7 +61,6 @@ type NavSection =
 const NAV_CATEGORIES: { id: NavCategoryId; label: string; icon: LucideIcon }[] = [
   { id: "operations", label: "Operations", icon: Briefcase },
   { id: "organization", label: "Organization", icon: Building2 },
-  { id: "fleet", label: "Fleet", icon: Truck },
   { id: "warehouse", label: "Warehouse", icon: Package },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "co2", label: "CO2 Dashboard", icon: Leaf },
@@ -101,11 +90,8 @@ const getMainNavItems = (role: string): NavItem[] => {
     { title: "Job History", url: "/jobs/history", icon: Clock, roles: ['driver', 'head_of_operation', 'warehouse_technician'], category: "operations" },
     { title: "Bookings", url: "/bookings", icon: FileText, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "operations" },
     { title: "Booking Queue", url: "/admin/bookings", icon: ClipboardList, roles: ['admin', 'head_of_operation'], category: "operations" },
-    { title: "Clients", url: "/clients", icon: Building2, roles: ['admin', 'head_of_operation', 'partner'], category: "organization" },
     { title: "Sites", url: "/sites", icon: MapPin, roles: ['admin', 'head_of_operation', 'client'], category: "organization" },
     { title: "Inventory", url: "/inventory", icon: Package, roles: ['admin', 'head_of_operation', 'client'], category: "warehouse" },
-    { title: "Drivers", url: "/admin/drivers", icon: SteeringWheelIcon, roles: ['admin', 'head_of_operation'], category: "fleet" },
-    { title: "Vehicles", url: "/admin/vehicles", icon: Truck, roles: ['admin', 'head_of_operation'], category: "fleet" },
     { title: "Documents", url: "/documents", icon: FileText, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "documents" },
     { title: "CO₂e Overview", url: "/co2e", icon: Leaf, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "co2" },
     { title: "Organisation", url: "/co2e?view=organisation", icon: Building2, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "co2" },

@@ -571,7 +571,6 @@ const Grading = () => {
           </Link>
         </Button>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-foreground">Asset Grading</h2>
           <p className="text-muted-foreground">{booking.bookingNumber} - {booking.organisationName || booking.clientName}</p>
           </div>
         </div>

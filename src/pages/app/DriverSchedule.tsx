@@ -163,7 +163,6 @@ const DriverSchedule = () => {
         className="flex flex-col gap-4"
       >
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Route & Schedule</h2>
           <p className="text-muted-foreground">View your assigned jobs and plan your route</p>
         </div>
       </motion.div>

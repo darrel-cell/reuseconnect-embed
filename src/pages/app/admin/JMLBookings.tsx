@@ -23,6 +23,10 @@ import { jmlBookingService } from "@/services/jml-booking.service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ListPagination } from "@/components/common/ListPagination";
+import { ViewModeToggle } from "@/components/common/ViewModeToggle";
+import { usePersistedViewMode } from "@/hooks/usePersistedViewMode";
+import { useClientPagination } from "@/hooks/useClientPagination";
 
 /** One device recorded when a JML collection is marked collected. */
 type CollectionItem = {
@@ -37,6 +41,7 @@ const JMLBookings = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [subTypeFilter, setSubTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = usePersistedViewMode("jml-bookings-view", "card");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [actionType, setActionType] = useState<'allocate' | 'tracking' | 'delivered' | 'collected' | null>(null);
   const [serialNumber, setSerialNumber] = useState("");
@@ -144,6 +149,11 @@ const JMLBookings = () => {
     });
   }, [jmlBookings, searchQuery, subTypeFilter, statusFilter]);
 
+  const { pagination, pagedItems, setPage, setLimit } = useClientPagination(
+    filteredBookings,
+    `${searchQuery}|${subTypeFilter}|${statusFilter}`
+  );
+
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-500/10 text-yellow-500",
     device_allocated: "bg-blue-500/10 text-blue-500",
@@ -234,6 +244,63 @@ const JMLBookings = () => {
     setCollectionItems(updated);
   };
 
+  const renderBookingActions = (booking: Booking) => (
+    <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+      {booking.status === 'pending' && (
+        <Button
+          size="sm"
+          onClick={() => {
+            setSelectedBooking(booking);
+            setActionType('allocate');
+          }}
+        >
+          Allocate Device
+        </Button>
+      )}
+      {booking.status === 'device_allocated' && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setSelectedBooking(booking);
+            setActionType('tracking');
+          }}
+        >
+          Add Tracking
+        </Button>
+      )}
+      {booking.status === 'courier_booked' && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setSelectedBooking(booking);
+            setActionType('delivered');
+          }}
+        >
+          Mark Delivered
+        </Button>
+      )}
+      {(booking.status === 'pending' || booking.status === 'collection_scheduled') && booking.jmlSubType === 'leaver' && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setSelectedBooking(booking);
+            setActionType('collected');
+          }}
+        >
+          Mark Collected
+        </Button>
+      )}
+      <Button size="sm" variant="ghost" asChild>
+        <Link to={`/bookings/${booking.id}`}>
+          View Details
+        </Link>
+      </Button>
+    </div>
+  );
+
   if (isLoading) {
     return <div className="p-6">Loading...</div>;
   }
@@ -242,14 +309,13 @@ const JMLBookings = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">JML Bookings</h1>
           <p className="text-muted-foreground">
             Manage Joiners, Leavers, Movers bookings
           </p>
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -262,7 +328,7 @@ const JMLBookings = () => {
           </div>
         </div>
         <Select value={subTypeFilter} onValueChange={setSubTypeFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Sub-type" />
           </SelectTrigger>
           <SelectContent>
@@ -274,7 +340,7 @@ const JMLBookings = () => {
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -288,133 +354,137 @@ const JMLBookings = () => {
             <SelectItem value="completed">Completed</SelectItem>
           </SelectContent>
         </Select>
+        <ViewModeToggle value={viewMode} onChange={setViewMode} className="self-end sm:self-auto" />
       </div>
 
-      <div className="grid gap-4">
-        {filteredBookings.map((booking) => {
-          const SubTypeIcon = subTypeIcons[booking.jmlSubType || ''] || User;
-          return (
-            <Card key={booking.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <SubTypeIcon className="h-5 w-5 text-muted-foreground" />
-                      <h3 className="font-semibold text-lg">{booking.employeeName || 'N/A'}</h3>
-                      <Badge className={statusColors[booking.status] || ''}>
-                        {booking.status.replace('_', ' ')}
-                      </Badge>
-                      <Badge variant="outline">
-                        {subTypeLabels[booking.jmlSubType || ''] || booking.jmlSubType}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4" />
-                        <span>{booking.bookingNumber}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(new Date(booking.scheduledDate), 'MMM dd, yyyy')}</span>
-                      </div>
-                      {booking.jmlSubType === 'mover' && booking.currentAddress ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-xs">
-                            <MapPin className="h-3.5 w-3.5" />
-                            <span>From: {booking.currentSiteName || 'Current'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs">
-                            <MapPin className="h-3.5 w-3.5 text-primary" />
-                            <span>To: {booking.siteName}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          <span>{booking.siteName}</span>
-                        </div>
-                      )}
-                      {booking.deviceType && (
-                        <div className="flex items-center gap-2">
-                          <Laptop className="h-4 w-4" />
-                          <span>{booking.deviceType}</span>
-                        </div>
-                      )}
-                    </div>
-                    {booking.courierTracking && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Tracking: </span>
-                        <span className="font-mono">{booking.courierTracking}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {booking.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedBooking(booking);
-                          setActionType('allocate');
-                        }}
-                      >
-                        Allocate Device
-                      </Button>
-                    )}
-                    {booking.status === 'device_allocated' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedBooking(booking);
-                          setActionType('tracking');
-                        }}
-                      >
-                        Add Tracking
-                      </Button>
-                    )}
-                    {booking.status === 'courier_booked' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedBooking(booking);
-                          setActionType('delivered');
-                        }}
-                      >
-                        Mark Delivered
-                      </Button>
-                    )}
-                    {(booking.status === 'pending' || booking.status === 'collection_scheduled') && booking.jmlSubType === 'leaver' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedBooking(booking);
-                          setActionType('collected');
-                        }}
-                      >
-                        Mark Collected
-                      </Button>
-                    )}
-                    <Button size="sm" variant="ghost" asChild>
-                      <Link to={`/bookings/${booking.id}`}>
-                        View Details
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {filteredBookings.length === 0 && (
+      {filteredBookings.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-muted-foreground">No JML bookings found</p>
           </CardContent>
         </Card>
+      ) : viewMode === "list" ? (
+        <div className="space-y-2">
+          {pagedItems.map((booking) => {
+            const displayName =
+              booking.organisationName ||
+              booking.clientName ||
+              booking.employeeName ||
+              "N/A";
+            return (
+              <Card key={booking.id} className="hover:shadow-sm transition-shadow">
+                <CardContent className="flex items-center gap-3 py-3">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {displayName}
+                      </p>
+                      {booking.employeeName &&
+                        displayName !== booking.employeeName && (
+                          <span className="truncate text-sm text-muted-foreground">
+                            {booking.employeeName}
+                          </span>
+                        )}
+                      <Badge variant="outline" className="text-xs">
+                        {subTypeLabels[booking.jmlSubType || ""] || booking.jmlSubType}
+                      </Badge>
+                      <Badge className={`text-xs ${statusColors[booking.status] || ""}`}>
+                        {booking.status.replace("_", " ")}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <span className="font-mono shrink-0">{booking.bookingNumber}</span>
+                      <span className="flex items-center gap-1 truncate">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {booking.siteName}
+                      </span>
+                      <span className="flex items-center gap-1 shrink-0">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(booking.scheduledDate), "MMM dd, yyyy")}
+                      </span>
+                    </div>
+                  </div>
+                  {renderBookingActions(booking)}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {pagedItems.map((booking) => {
+            const SubTypeIcon = subTypeIcons[booking.jmlSubType || ''] || User;
+            return (
+              <Card key={booking.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <SubTypeIcon className="h-5 w-5 text-muted-foreground" />
+                        <h3 className="font-semibold text-lg">{booking.employeeName || 'N/A'}</h3>
+                        <Badge className={statusColors[booking.status] || ''}>
+                          {booking.status.replace('_', ' ')}
+                        </Badge>
+                        <Badge variant="outline">
+                          {subTypeLabels[booking.jmlSubType || ''] || booking.jmlSubType}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          <span>{booking.bookingNumber}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>{format(new Date(booking.scheduledDate), 'MMM dd, yyyy')}</span>
+                        </div>
+                        {booking.jmlSubType === 'mover' && booking.currentAddress ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-xs">
+                              <MapPin className="h-3.5 w-3.5" />
+                              <span>From: {booking.currentSiteName || 'Current'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <MapPin className="h-3.5 w-3.5 text-primary" />
+                              <span>To: {booking.siteName}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            <span>{booking.siteName}</span>
+                          </div>
+                        )}
+                        {booking.deviceType && (
+                          <div className="flex items-center gap-2">
+                            <Laptop className="h-4 w-4" />
+                            <span>{booking.deviceType}</span>
+                          </div>
+                        )}
+                      </div>
+                      {booking.courierTracking && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Tracking: </span>
+                          <span className="font-mono">{booking.courierTracking}</span>
+                        </div>
+                      )}
+                    </div>
+                    {renderBookingActions(booking)}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {filteredBookings.length > 0 && (
+        <ListPagination
+          pagination={pagination}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          itemLabel="bookings"
+        />
       )}
 
       {/* Allocate Device Dialog */}

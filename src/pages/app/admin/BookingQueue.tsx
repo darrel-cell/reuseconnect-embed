@@ -33,6 +33,10 @@ import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { formatDate } from '@/lib/datetime';
+import { ListPagination } from "@/components/common/ListPagination";
+import { ViewModeToggle } from "@/components/common/ViewModeToggle";
+import { usePersistedViewMode } from "@/hooks/usePersistedViewMode";
+import { useClientPagination } from "@/hooks/useClientPagination";
 
 // Group order and status mapping (aligned with ITAD / New Starter / Leaver / Breakfix / Mover flows)
 const statusGroups: { label: string; statuses: (BookingLifecycleStatus | 'cancelled')[] }[] = [
@@ -237,6 +241,7 @@ const BookingQueue = () => {
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [editDateBookingId, setEditDateBookingId] = useState<string | null>(null);
   const [newScheduledDate, setNewScheduledDate] = useState<string>("");
+  const [viewMode, setViewMode] = usePersistedViewMode("booking-queue-view", "card");
 
   const { data: bookings = [], isLoading, error } = useBookings();
   const { data: drivers = [] } = useDrivers();
@@ -306,9 +311,14 @@ const BookingQueue = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Group bookings by status
+  const { pagination, pagedItems, setPage, setLimit } = useClientPagination(
+    filteredBookings,
+    `${searchQuery}|${statusGroup}`
+  );
+
+  // Group current page of bookings by status
   const groupedBookings = statusGroups.reduce((acc, group) => {
-    const groupBookings = filteredBookings.filter(b => group.statuses.includes(b.status));
+    const groupBookings = pagedItems.filter(b => group.statuses.includes(b.status));
     if (groupBookings.length > 0) {
       acc[group.label] = groupBookings;
     }
@@ -317,7 +327,7 @@ const BookingQueue = () => {
 
   // Include any bookings that don't match any status group (safety net)
   const allStatusesInGroups = new Set(statusGroups.flatMap(g => g.statuses));
-  const ungroupedBookings = filteredBookings.filter(b => !allStatusesInGroups.has(b.status));
+  const ungroupedBookings = pagedItems.filter(b => !allStatusesInGroups.has(b.status));
   if (ungroupedBookings.length > 0) {
     groupedBookings['Other'] = ungroupedBookings;
   }
@@ -334,16 +344,14 @@ const BookingQueue = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <motion.div
+      {/* Subtitle only — page title comes from AppLayout */}
+      <motion.p
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
+        className="text-muted-foreground"
       >
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Booking Queue</h2>
-          <p className="text-muted-foreground">Manage and assign bookings by status</p>
-        </div>
-      </motion.div>
+        Manage and assign bookings by status
+      </motion.p>
 
       {/* Search and Filters */}
       <motion.div
@@ -374,6 +382,7 @@ const BookingQueue = () => {
             ))}
           </SelectContent>
         </Select>
+        <ViewModeToggle value={viewMode} onChange={setViewMode} className="self-end sm:self-auto" />
       </motion.div>
 
       {/* Bookings by Status Group */}
@@ -381,7 +390,7 @@ const BookingQueue = () => {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : Object.keys(groupedBookings).length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <div className="text-center py-12">
           <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
           <p className="text-muted-foreground">No bookings found matching your criteria</p>
@@ -403,10 +412,273 @@ const BookingQueue = () => {
                   <h3 className="text-lg font-semibold text-foreground">{group.label}</h3>
                   <Badge variant="secondary">{groupBookings.length}</Badge>
                 </div>
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <div className={viewMode === "list" ? "space-y-2" : "grid gap-3 md:grid-cols-2 lg:grid-cols-3"}>
                   {groupBookings.map((booking, index) => {
                     const statusColor = getStatusColor(booking.status);
                     const statusLabel = getStatusLabelExtended(booking.status, booking.bookingType);
+                    const actionBtnClass = viewMode === "card" ? "w-full mt-2" : undefined;
+                    const canEditScheduledDate =
+                      booking.status === "created" ||
+                      booking.status === "scheduled" ||
+                      booking.status === "collection_scheduled" ||
+                      booking.status === "courier_booked";
+                    const canReassignDriver =
+                      booking.status === "scheduled" &&
+                      !!booking.jobId &&
+                      booking.jobStatus === "routed" &&
+                      booking.bookingType !== "jml";
+                    const sequence = getBookingSequence(booking);
+                    const currentIndex = sequence.findIndex((s) => s === booking.status);
+                    const rollbackStatuses =
+                      currentUser?.isSuperAdmin && currentIndex > 0
+                        ? sequence.slice(0, currentIndex).reverse()
+                        : [];
+                    const nextStatus = getNextStatusForBooking(booking);
+
+                    const bookingActions = (
+                      <>
+                        <div className={viewMode === "card" ? "flex items-center gap-2 mt-2" : "flex items-center gap-2"}>
+                          <Button variant="outline" asChild className={viewMode === "card" ? "flex-1" : undefined} size="sm">
+                            <Link to={`/bookings/${booking.id}`} className="text-inherit no-underline">
+                              View Details
+                              <ArrowRight className="h-4 w-4 ml-2" />
+                            </Link>
+                          </Button>
+                          {(canEditScheduledDate || canReassignDriver || rollbackStatuses.length > 0) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="icon" aria-label="More actions">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {canEditScheduledDate && (
+                                  <DropdownMenuItem
+                                    onClick={() => openEditDateDialog(booking.id, booking.scheduledDate)}
+                                  >
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Change Schedule Date
+                                  </DropdownMenuItem>
+                                )}
+                                {canReassignDriver && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setReassignBookingId(booking.id);
+                                      setSelectedDriverId("");
+                                    }}
+                                    disabled={reassignDriver.isPending}
+                                  >
+                                    <UserCog className="h-4 w-4 mr-2" />
+                                    Re-assign Driver
+                                  </DropdownMenuItem>
+                                )}
+                                {rollbackStatuses.map((rollbackStatus) => (
+                                  <DropdownMenuItem
+                                    key={`${booking.id}-${rollbackStatus}`}
+                                    onClick={() => handleUpdateStatus(booking.id, rollbackStatus)}
+                                    disabled={updateBookingStatus.isPending}
+                                  >
+                                    Move back to {getStatusLabel(rollbackStatus)}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                        {booking.status === 'pending' && (
+                          <Button variant="default" asChild className={actionBtnClass} size="sm">
+                            <Link to={`/admin/booking-approval/${booking.id}`} className="text-inherit no-underline">
+                              Review & Approve
+                            </Link>
+                          </Button>
+                        )}
+                        {/* Only show Assign Driver for ITAD bookings - explicitly exclude JML */}
+                        {booking.status === 'created' &&
+                         booking.bookingType !== 'jml' &&
+                         !isFreeCourierBooking(booking) &&
+                         (booking.bookingType === 'itad_collection' || booking.bookingType === undefined || booking.bookingType === null) && (
+                          <Button variant="default" asChild className={actionBtnClass} size="sm">
+                            <Link to={`/admin/assign?booking=${booking.id}`} className="text-inherit no-underline">
+                              <UserPlus />
+                              Assign Driver
+                            </Link>
+                          </Button>
+                        )}
+                        {/* Free Collection (ITAD courier-like): created -> book courier, no driver assignment */}
+                        {booking.status === 'created' &&
+                          isFreeCourierBooking(booking) && (
+                          <Button variant="default" asChild className={actionBtnClass} size="sm">
+                            <Link to={`/admin/assign?booking=${booking.id}`} className="text-inherit no-underline">
+                              <PackageSearch />
+                              Book Courier
+                            </Link>
+                          </Button>
+                        )}
+                        {/* Show Allocate Device for new_starter and breakfix in created status */}
+                        {booking.status === 'created' &&
+                          booking.bookingType === 'jml' &&
+                          (booking.jmlSubType === 'new_starter' || booking.jmlSubType === 'breakfix') && (
+                          <Button variant="default" asChild className={actionBtnClass} size="sm">
+                            <Link to={`/admin/device-allocation?booking=${booking.id}`} className="text-inherit no-underline">
+                              <Package />
+                              Allocate Device
+                            </Link>
+                          </Button>
+                        )}
+                        {/* Show Book Courier for JML bookings in device_allocated status */}
+                        {booking.status === 'device_allocated' &&
+                          booking.bookingType === 'jml' && (
+                          <Button variant="default" asChild className={actionBtnClass} size="sm">
+                            <Link to={`/admin/assign?booking=${booking.id}`} className="text-inherit no-underline">
+                              <PackageSearch />
+                              Book Courier
+                            </Link>
+                          </Button>
+                        )}
+                        {/* Show Book Courier for leaver and mover in created status (no device allocation needed) */}
+                        {booking.status === 'created' &&
+                          booking.bookingType === 'jml' &&
+                          (booking.jmlSubType === 'leaver' || booking.jmlSubType === 'mover') && (
+                          <Button variant="default" asChild className={actionBtnClass} size="sm">
+                            <Link to={`/admin/assign?booking=${booking.id}`} className="text-inherit no-underline">
+                              <PackageSearch />
+                              Book Courier
+                            </Link>
+                          </Button>
+                        )}
+                        {booking.status === 'warehouse' &&
+                          (booking.bookingType === 'jml' && booking.jmlSubType === 'mover' ? (
+                            <Button asChild className={actionBtnClass} size="sm" variant="default">
+                              <Link to={`/admin/grading/${booking.id}`} className="text-inherit no-underline">
+                                Grade Assets
+                              </Link>
+                            </Button>
+                          ) : (
+                            <Button asChild className={actionBtnClass} size="sm" variant="default">
+                              <Link to={`/admin/sanitisation/${booking.id}`} className="text-inherit no-underline">
+                                Record Sanitisation
+                              </Link>
+                            </Button>
+                          ))}
+                        {booking.status === 'sanitised' && (
+                          <Button asChild className={actionBtnClass} size="sm" variant="default">
+                            <Link to={`/admin/grading/${booking.id}`} className="text-inherit no-underline">
+                              Grade Assets
+                            </Link>
+                          </Button>
+                        )}
+                        {booking.status === 'graded' &&
+                          booking.bookingType === 'jml' &&
+                          (booking.jmlSubType === 'leaver' ||
+                            booking.jmlSubType === 'breakfix' ||
+                            booking.jmlSubType === 'mover') && (
+                          <Button asChild className={actionBtnClass} size="sm" variant="default">
+                            <Link to={`/admin/booking-inventory/${booking.id}`} className="text-inherit no-underline">
+                              Add to Inventory List
+                            </Link>
+                          </Button>
+                        )}
+                        {/* Next-step button: for inventory status nextStatus is 'completed', so dynamic block below shows Final Overview */}
+                        {/* Single next-step button per status, only where there is no dedicated action */}
+                        {(() => {
+                          if (!nextStatus) return null;
+
+                          // Mover at inventory: allocate all devices linked to this booking (device allocation page auto-runs)
+                          if (
+                            booking.bookingType === 'jml' &&
+                            booking.jmlSubType === 'mover' &&
+                            booking.status === 'inventory' &&
+                            nextStatus === 'device_allocated'
+                          ) {
+                            return (
+                              <Button asChild className={actionBtnClass} size="sm" variant="success">
+                                <Link to={`/admin/device-allocation?booking=${booking.id}`} className="text-inherit no-underline">
+                                  <Package className="h-4 w-4 mr-2 inline" />
+                                  Allocate Device
+                                </Link>
+                              </Button>
+                            );
+                          }
+
+                          // For any status that goes directly to Completed, send admin to final overview page
+                          if (nextStatus === 'completed') {
+                            return (
+                              <Button
+                                asChild
+                                className={actionBtnClass}
+                                size="sm"
+                                variant="success"
+                                disabled={updateBookingStatus.isPending}
+                              >
+                                <Link to={`/booking-review/${booking.id}`} className="text-inherit no-underline">
+                                  Final Overview
+                                </Link>
+                              </Button>
+                            );
+                          }
+
+                          return (
+                            <Button
+                              variant="default"
+                              className={actionBtnClass}
+                              size="sm"
+                              disabled={updateBookingStatus.isPending}
+                              onClick={() => handleUpdateStatus(booking.id, nextStatus)}
+                            >
+                              {`Move to ${getStatusLabel(nextStatus)}`}
+                            </Button>
+                          );
+                        })()}
+                      </>
+                    );
+
+                    if (viewMode === "list") {
+                      return (
+                        <motion.div
+                          key={booking.id}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: Math.min(index * 0.03, 0.15) }}
+                        >
+                          <Card className="hover:shadow-sm transition-shadow">
+                            <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center">
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                  <p className="truncate text-sm font-semibold text-foreground">
+                                    {booking.organisationName || booking.clientName}
+                                  </p>
+                                  <BookingTypeBadge
+                                    bookingType={booking.bookingType}
+                                    jmlSubType={booking.jmlSubType}
+                                    isFreeCollection={isFreeCourierBooking(booking)}
+                                    size="sm"
+                                  />
+                                  <Badge className={statusColor}>{statusLabel}</Badge>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                  <span className="font-mono shrink-0">{booking.bookingNumber}</span>
+                                  <span className="flex min-w-0 items-center gap-1 truncate">
+                                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">
+                                      {booking.jmlSubType === 'mover' && booking.currentAddress
+                                        ? `${booking.currentSiteName || 'Current'} → ${booking.siteName}`
+                                        : booking.siteName}
+                                    </span>
+                                  </span>
+                                  <span className="flex shrink-0 items-center gap-1">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    {formatDate(booking.scheduledDate)}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                                {bookingActions}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    }
 
                     return (
                       <motion.div
@@ -422,8 +694,8 @@ const BookingQueue = () => {
                                 <CardTitle className="text-base mb-1">{booking.organisationName || booking.clientName}</CardTitle>
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <p className="text-xs font-mono text-muted-foreground">{booking.bookingNumber}</p>
-                                  <BookingTypeBadge 
-                                    bookingType={booking.bookingType} 
+                                  <BookingTypeBadge
+                                    bookingType={booking.bookingType}
                                     jmlSubType={booking.jmlSubType}
                                     isFreeCollection={isFreeCourierBooking(booking)}
                                     size="sm"
@@ -469,7 +741,7 @@ const BookingQueue = () => {
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Route className="h-4 w-4" />
                                 <span>
-                                  Return Journey: {booking.roundTripDistanceMiles 
+                                  Return Journey: {booking.roundTripDistanceMiles
                                     ? `${booking.roundTripDistanceMiles.toFixed(1)} mi`
                                     : `${(booking.roundTripDistanceKm * 0.621371).toFixed(1)} mi`}
                                 </span>
@@ -511,220 +783,7 @@ const BookingQueue = () => {
                                 <span>Driver: {booking.driverName}</span>
                               </div>
                             )}
-                            {(() => {
-                              const canEditScheduledDate =
-                                booking.status === "created" ||
-                                booking.status === "scheduled" ||
-                                booking.status === "collection_scheduled" ||
-                                booking.status === "courier_booked";
-                              const canReassignDriver =
-                                booking.status === "scheduled" &&
-                                !!booking.jobId &&
-                                booking.jobStatus === "routed" &&
-                                booking.bookingType !== "jml";
-                              const sequence = getBookingSequence(booking);
-                              const currentIndex = sequence.findIndex((s) => s === booking.status);
-                              const rollbackStatuses =
-                                currentUser?.isSuperAdmin && currentIndex > 0
-                                  ? sequence.slice(0, currentIndex).reverse()
-                                  : [];
-
-                              return (
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Button variant="outline" asChild className="flex-1" size="sm">
-                                    <Link to={`/bookings/${booking.id}`} className="text-inherit no-underline">
-                                      View Details
-                                      <ArrowRight className="h-4 w-4 ml-2" />
-                                    </Link>
-                                  </Button>
-                                  {(canEditScheduledDate || canReassignDriver || rollbackStatuses.length > 0) && (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="icon" aria-label="More actions">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        {canEditScheduledDate && (
-                                          <DropdownMenuItem
-                                            onClick={() => openEditDateDialog(booking.id, booking.scheduledDate)}
-                                          >
-                                            <Pencil className="h-4 w-4 mr-2" />
-                                            Change Schedule Date
-                                          </DropdownMenuItem>
-                                        )}
-                                        {canReassignDriver && (
-                                          <DropdownMenuItem
-                                            onClick={() => {
-                                              setReassignBookingId(booking.id);
-                                              setSelectedDriverId("");
-                                            }}
-                                            disabled={reassignDriver.isPending}
-                                          >
-                                            <UserCog className="h-4 w-4 mr-2" />
-                                            Re-assign Driver
-                                          </DropdownMenuItem>
-                                        )}
-                                        {rollbackStatuses.map((rollbackStatus) => (
-                                          <DropdownMenuItem
-                                            key={`${booking.id}-${rollbackStatus}`}
-                                            onClick={() => handleUpdateStatus(booking.id, rollbackStatus)}
-                                            disabled={updateBookingStatus.isPending}
-                                          >
-                                            Move back to {getStatusLabel(rollbackStatus)}
-                                          </DropdownMenuItem>
-                                        ))}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                            {booking.status === 'pending' && (
-                              <Button variant="default" asChild className="w-full mt-2" size="sm">
-                                <Link to={`/admin/booking-approval/${booking.id}`} className="text-inherit no-underline">
-                                  Review & Approve
-                                </Link>
-                              </Button>
-                            )}
-                            {/* Only show Assign Driver for ITAD bookings - explicitly exclude JML */}
-                            {booking.status === 'created' && 
-                             booking.bookingType !== 'jml' && 
-                             !isFreeCourierBooking(booking) &&
-                             (booking.bookingType === 'itad_collection' || booking.bookingType === undefined || booking.bookingType === null) && (
-                              <Button variant="default" asChild className="w-full mt-2" size="sm">
-                                <Link to={`/admin/assign?booking=${booking.id}`} className="text-inherit no-underline">
-                                  <UserPlus />
-                                  Assign Driver
-                                </Link>
-                              </Button>
-                            )}
-                            {/* Free Collection (ITAD courier-like): created -> book courier, no driver assignment */}
-                            {booking.status === 'created' &&
-                              isFreeCourierBooking(booking) && (
-                              <Button variant="default" asChild className="w-full mt-2" size="sm">
-                                <Link to={`/admin/assign?booking=${booking.id}`} className="text-inherit no-underline">
-                                  <PackageSearch />
-                                  Book Courier
-                                </Link>
-                              </Button>
-                            )}
-                            {/* Show Allocate Device for new_starter and breakfix in created status */}
-                            {booking.status === 'created' &&
-                              booking.bookingType === 'jml' &&
-                              (booking.jmlSubType === 'new_starter' || booking.jmlSubType === 'breakfix') && (
-                              <Button variant="default" asChild className="w-full mt-2" size="sm">
-                                <Link to={`/admin/device-allocation?booking=${booking.id}`} className="text-inherit no-underline">
-                                  <Package />
-                                  Allocate Device
-                                </Link>
-                              </Button>
-                            )}
-                            {/* Show Book Courier for JML bookings in device_allocated status */}
-                            {booking.status === 'device_allocated' &&
-                              booking.bookingType === 'jml' && (
-                              <Button variant="default" asChild className="w-full mt-2" size="sm">
-                                <Link to={`/admin/assign?booking=${booking.id}`} className="text-inherit no-underline">
-                                  <PackageSearch />
-                                  Book Courier
-                                </Link>
-                              </Button>
-                            )}
-                            {/* Show Book Courier for leaver and mover in created status (no device allocation needed) */}
-                            {booking.status === 'created' &&
-                              booking.bookingType === 'jml' &&
-                              (booking.jmlSubType === 'leaver' || booking.jmlSubType === 'mover') && (
-                              <Button variant="default" asChild className="w-full mt-2" size="sm">
-                                <Link to={`/admin/assign?booking=${booking.id}`} className="text-inherit no-underline">
-                                  <PackageSearch />
-                                  Book Courier
-                                </Link>
-                              </Button>
-                            )}
-                            {booking.status === 'warehouse' &&
-                              (booking.bookingType === 'jml' && booking.jmlSubType === 'mover' ? (
-                                <Button asChild className="w-full mt-2" size="sm" variant="default">
-                                  <Link to={`/admin/grading/${booking.id}`} className="text-inherit no-underline">
-                                    Grade Assets
-                                  </Link>
-                                </Button>
-                              ) : (
-                                <Button asChild className="w-full mt-2" size="sm" variant="default">
-                                  <Link to={`/admin/sanitisation/${booking.id}`} className="text-inherit no-underline">
-                                    Record Sanitisation
-                                  </Link>
-                                </Button>
-                              ))}
-                            {booking.status === 'sanitised' && (
-                              <Button asChild className="w-full mt-2" size="sm" variant="default">
-                                <Link to={`/admin/grading/${booking.id}`} className="text-inherit no-underline">
-                                  Grade Assets
-                                </Link>
-                              </Button>
-                            )}
-                            {booking.status === 'graded' &&
-                              booking.bookingType === 'jml' &&
-                              (booking.jmlSubType === 'leaver' ||
-                                booking.jmlSubType === 'breakfix' ||
-                                booking.jmlSubType === 'mover') && (
-                              <Button asChild className="w-full mt-2" size="sm" variant="default">
-                                <Link to={`/admin/booking-inventory/${booking.id}`} className="text-inherit no-underline">
-                                  Add to Inventory List
-                                </Link>
-                              </Button>
-                            )}
-                            {/* Next-step button: for inventory status nextStatus is 'completed', so dynamic block below shows Final Overview */}
-                            {/* Single next-step button per status, only where there is no dedicated action */}
-                            {(() => {
-                              const nextStatus = getNextStatusForBooking(booking);
-                              if (!nextStatus) return null;
-
-                              // Mover at inventory: allocate all devices linked to this booking (device allocation page auto-runs)
-                              if (
-                                booking.bookingType === 'jml' &&
-                                booking.jmlSubType === 'mover' &&
-                                booking.status === 'inventory' &&
-                                nextStatus === 'device_allocated'
-                              ) {
-                                return (
-                                  <Button asChild className="w-full mt-2" size="sm" variant="success">
-                                    <Link to={`/admin/device-allocation?booking=${booking.id}`} className="text-inherit no-underline">
-                                      <Package className="h-4 w-4 mr-2 inline" />
-                                      Allocate Device
-                                    </Link>
-                                  </Button>
-                                );
-                              }
-
-                              // For any status that goes directly to Completed, send admin to final overview page
-                              if (nextStatus === 'completed') {
-                                return (
-                                  <Button
-                                    asChild
-                                    className="w-full mt-2"
-                                    size="sm"
-                                    variant="success"
-                                    disabled={updateBookingStatus.isPending}
-                                  >
-                                    <Link to={`/booking-review/${booking.id}`} className="text-inherit no-underline">
-                                      Final Overview
-                                    </Link>
-                                  </Button>
-                                );
-                              }
-
-                              return (
-                                <Button
-                                  variant="default"
-                                  className="w-full mt-2"
-                                  size="sm"
-                                  disabled={updateBookingStatus.isPending}
-                                  onClick={() => handleUpdateStatus(booking.id, nextStatus)}
-                                >
-                                  {`Move to ${getStatusLabel(nextStatus)}`}
-                                </Button>
-                              );
-                            })()}
+                            {bookingActions}
                           </CardContent>
                         </Card>
                       </motion.div>
@@ -736,6 +795,14 @@ const BookingQueue = () => {
           })}
         </div>
       )}
+
+      <ListPagination
+        pagination={pagination}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
+        itemLabel="bookings"
+        isLoading={isLoading}
+      />
 
       {/* Re-assign Driver Dialog */}
       <Dialog open={!!reassignBookingId} onOpenChange={(open) => !open && setReassignBookingId(null)}>

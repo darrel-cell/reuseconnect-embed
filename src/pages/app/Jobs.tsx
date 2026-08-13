@@ -14,6 +14,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { ListPagination } from "@/components/common/ListPagination";
+import { useClientPagination } from "@/hooks/useClientPagination";
 
 // All workflow status filters (aligned with WorkflowStatus type). Dispatched statuses are kept in types but skipped in UI for now.
 const allStatusFilters: { value: WorkflowStatus | "all"; label: string }[] = [
@@ -83,6 +85,10 @@ const Jobs = () => {
     }
     return jobs;
   }, [jobs, user?.role]);
+  const { pagination, pagedItems, setPage, setLimit } = useClientPagination(
+    visibleJobs,
+    `${debouncedSearch}|${activeFilter}`
+  );
   
   const isReseller = user?.role === 'partner';
 
@@ -101,7 +107,7 @@ const Jobs = () => {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-4"
+        className="flex flex-col sm:flex-row gap-4"
       >
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -152,7 +158,7 @@ const Jobs = () => {
             <p className="text-muted-foreground">No jobs found matching your criteria</p>
           </div>
         ) : (
-          visibleJobs.map((job, index) => (
+          pagedItems.map((job, index) => (
           <motion.div
             key={job.id}
             initial={{ opacity: 0, y: 20 }}
@@ -274,6 +280,16 @@ const Jobs = () => {
         ))
         )}
       </div>
+
+      {!isLoading && visibleJobs.length > 0 && (
+        <ListPagination
+          pagination={pagination}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          itemLabel="jobs"
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 };

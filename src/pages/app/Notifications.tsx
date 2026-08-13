@@ -106,7 +106,6 @@ const Notifications = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Notifications</h2>
             <p className="text-muted-foreground">
               {unreadCount} unread • {readCount} read
             </p>

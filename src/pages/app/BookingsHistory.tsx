@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Search, Calendar, MapPin, Package, ArrowRight, Loader2, FileText, Truck, User } from "lucide-react";
+import { Search, Calendar, MapPin, ArrowRight, Loader2, FileText, Truck, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,21 +54,17 @@ const BookingsHistory = () => {
 
   return (
     <div className="space-y-6">
-      <BuybackEstimateDisclaimer className="max-w-3xl" />
-
-      {/* Header */}
-      <motion.div
+      {/* Subtitle only — page title comes from AppLayout */}
+      <motion.p
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        className="flex items-center gap-1.5 text-muted-foreground"
       >
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Booking History</h2>
-          <p className="text-muted-foreground">
-            {user?.role === "partner" ? "View all bookings for your clients" : "Track your booking requests"}
-          </p>
-        </div>
-      </motion.div>
+        <span>
+          {user?.role === "partner" ? "View all bookings for your clients" : "Track your booking requests"}
+        </span>
+        <BuybackEstimateDisclaimer variant="icon" />
+      </motion.p>
 
       {/* Search and Filters */}
       <motion.div
@@ -247,4 +243,3 @@ const BookingsHistory = () => {
 };
 
 export default BookingsHistory;
-

@@ -98,7 +98,6 @@ const Profile = () => {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Profile</h2>
         <p className="text-muted-foreground">Manage your contact and organisation profile information</p>
       </div>
 

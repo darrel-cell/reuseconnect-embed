@@ -982,12 +982,6 @@ const CO2eDashboard = () => {
               className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
             >
               <div>
-                <h2 className="text-xl font-bold text-foreground">
-                  Environmental Impact
-                  {selectedClient && (
-                    <span className="text-lg text-primary ml-2">- {selectedClient.name}</span>
-                  )}
-                </h2>
                 <p className="text-sm text-muted-foreground">
                   {selectedClient 
                     ? `${selectedClient.name}'s CO₂e savings and ESG metrics`
@@ -1367,7 +1361,6 @@ const CO2eDashboard = () => {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Environmental Impact</h2>
           <p className="text-muted-foreground">Your CO₂e savings and ESG metrics</p>
         </div>
       </motion.div>

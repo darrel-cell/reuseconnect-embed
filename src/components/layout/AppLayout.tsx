@@ -14,18 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { useNotifications } from "@/contexts/notification-context";
 import { useAuth } from "@/contexts/auth-context";
-
-const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/booking": "New Booking",
-  "/booking/itad": "New ITAD Booking",
-  "/jobs": "Jobs & Collections",
-  "/jobs/history": "Job History",
-  "/co2e": "CO₂e Dashboard",
-  "/documents": "Compliance Documents",
-  "/settings": "Settings",
-  "/profile": "Profile",
-};
+import { chromeTitleForPath } from "@/lib/page-titles";
 
 
 export function AppLayout() {
@@ -34,25 +23,7 @@ export function AppLayout() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const co2View = new URLSearchParams(location.search).get('view');
-  const co2TitleMap: Record<string, string> = {
-    organisation: 'CO₂e by organisation',
-    user: 'CO₂e by User',
-    serial: 'CO₂e by Serial Number',
-  };
-  const pageTitle = (location.pathname === '/co2e' && co2View && co2TitleMap[co2View])
-    ? co2TitleMap[co2View]
-    : pageTitles[location.pathname] || 
-    (location.pathname.startsWith("/jobs/")
-      ? "Job Details"
-      : location.pathname.startsWith("/warehouse/jobs/")
-        ? "Warehouse Processing"
-        : location.pathname.startsWith("/warehouse/sanitisation/")
-          ? "Sanitisation Management"
-          : location.pathname.startsWith("/warehouse/grading/")
-            ? "Asset Grading"
-        : "Reuse");
-
+  const pageTitle = chromeTitleForPath(location.pathname, location.search);
   const { data: searchResults, isLoading: isSearching } = useSearch(searchQuery);
   
   // Notification state from context

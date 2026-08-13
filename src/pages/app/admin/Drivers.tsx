@@ -295,7 +295,6 @@ const Drivers = () => {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Driver Management</h2>
           <p className="text-muted-foreground">Manage drivers and their vehicle information</p>
         </div>
         <Button onClick={() => setIsInviteDialogOpen(true)}>
