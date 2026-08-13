@@ -61,6 +61,11 @@ const App = () => (
               {/* Without this, an uncaught render error unmounts the tree and the
                   partner's customer is left looking at a blank iframe. */}
               <ErrorBoundary context="embed portal root">
+              {/*
+                Covers NotFound and any route outside AppLayout. Authenticated
+                pages suspend inside AppLayout so the sidebar stays mounted while
+                a route chunk downloads.
+              */}
               <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />

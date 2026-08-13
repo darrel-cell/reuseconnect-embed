@@ -3,8 +3,9 @@ import { Loader2 } from 'lucide-react';
 /**
  * Shown while a lazily-loaded route chunk downloads.
  *
- * Deliberately minimal and centred so it reads as "loading this page", not as a
- * broken layout — most chunks arrive in well under a second on a warm cache.
+ * Used inside AppLayout around `<Outlet />` so only the main pane is replaced —
+ * the sidebar stays mounted. Also used at the app root for routes outside the
+ * layout. Deliberately minimal; most chunks arrive quickly on a warm cache.
  */
 export function RouteFallback() {
   return (

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -15,6 +15,7 @@ import {
 import { useNotifications } from "@/contexts/notification-context";
 import { useAuth } from "@/contexts/auth-context";
 import { chromeTitleForPath } from "@/lib/page-titles";
+import { RouteFallback } from "@/components/RouteFallback";
 
 
 export function AppLayout() {
@@ -316,8 +317,15 @@ export function AppLayout() {
           </header>
 
           {/* Main Content */}
+          {/*
+            Suspense lives here — not around the whole route tree — so a lazily
+            loaded page chunk only replaces the main pane. The sidebar stays
+            mounted on first navigation to a route.
+          */}
           <main className="flex-1 p-6 overflow-auto" data-main-content>
-            <Outlet />
+            <Suspense fallback={<RouteFallback />}>
+              <Outlet />
+            </Suspense>
           </main>
         </SidebarInset>
       </div>
