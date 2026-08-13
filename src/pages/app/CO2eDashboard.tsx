@@ -31,10 +31,12 @@ import {
   PieChart,
   Pie,
   Cell,
+  Sector,
   BarChart,
   Bar,
   LabelList
 } from "recharts";
+import type { PieSectorDataItem } from "recharts/types/polar/Pie";
 import { co2eEquivalencies } from "@/lib/constants";
 import { useJobs } from "@/hooks/useJobs";
 import { useAssetCategories } from "@/hooks/useAssets";
@@ -61,11 +63,200 @@ type ChartTickProps = {
 };
 
 type ChartTooltipPayload = {
-  payload?: { actualValue?: number } & Record<string, unknown>;
+  payload?: { actualValue?: number; name?: string } & Record<string, unknown>;
   dataKey?: string | number;
   name?: string;
   value?: number;
 };
+
+type CategoryPieItem = {
+  name: string;
+  value: number;
+  color: string;
+  actualValue?: number;
+};
+
+/** Expanded + ring highlight for the hovered pie slice. */
+function renderActiveCategoryShape(props: PieSectorDataItem) {
+  const {
+    cx = 0,
+    cy = 0,
+    innerRadius = 0,
+    outerRadius = 0,
+    startAngle = 0,
+    endAngle = 0,
+    fill,
+  } = props;
+
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 8}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+        style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.25))" }}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={outerRadius + 10}
+        outerRadius={outerRadius + 14}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+        opacity={0.4}
+      />
+    </g>
+  );
+}
+
+function CategorySavingsPie({
+  data,
+  innerRadius,
+  outerRadius,
+  tooltipFontSize,
+  activeIndex,
+  onActiveIndexChange,
+}: {
+  data: CategoryPieItem[];
+  innerRadius: number;
+  outerRadius: number;
+  tooltipFontSize?: string;
+  activeIndex: number | null;
+  onActiveIndexChange: (index: number | null) => void;
+}) {
+  const active = activeIndex !== null ? data[activeIndex] : null;
+
+  return (
+    <div className="relative h-full w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart margin={{ top: 12, right: 12, bottom: 12, left: 12 }}>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={innerRadius}
+            outerRadius={outerRadius}
+            paddingAngle={2}
+            dataKey="value"
+            nameKey="name"
+            activeIndex={activeIndex ?? undefined}
+            activeShape={renderActiveCategoryShape}
+            onMouseEnter={(_, index) => onActiveIndexChange(index)}
+            onMouseLeave={() => onActiveIndexChange(null)}
+            style={{ cursor: "pointer", outline: "none" }}
+          >
+            {data.map((entry, index) => (
+              <Cell
+                key={`cell-${entry.name}`}
+                fill={entry.color}
+                stroke="hsl(var(--card))"
+                strokeWidth={1}
+                style={{
+                  outline: "none",
+                  opacity: activeIndex === null || activeIndex === index ? 1 : 0.4,
+                  transition: "opacity 150ms ease",
+                }}
+              />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+
+      {/* Center label — avoids edge clipping from a floating tooltip */}
+      {active && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
+          <div
+            className="max-w-[70%] rounded-md border border-border/80 bg-card/95 px-2 py-1.5 text-center shadow-sm backdrop-blur-sm"
+            style={tooltipFontSize ? { fontSize: tooltipFontSize } : undefined}
+          >
+            <p className="truncate text-xs font-semibold leading-tight text-foreground sm:text-sm">
+              {active.name}
+            </p>
+            <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground sm:text-xs">
+              {active.value}% · {((active.actualValue || 0) / 1000).toFixed(2)}t CO₂e
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Chart + legend with shared hover highlight. */
+function CategorySavingsPanel({
+  data,
+  heightClass,
+  chartWidthClass,
+  innerRadius,
+  outerRadius,
+  legendTextClass,
+  swatchClass,
+  tooltipFontSize,
+}: {
+  data: CategoryPieItem[];
+  heightClass: string;
+  chartWidthClass: string;
+  innerRadius: number;
+  outerRadius: number;
+  legendTextClass: string;
+  swatchClass: string;
+  tooltipFontSize?: string;
+}) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  return (
+    <div className={cn("flex items-center gap-4", heightClass)}>
+      <div className={cn("h-full min-w-0 shrink-0 overflow-visible", chartWidthClass)}>
+        <CategorySavingsPie
+          data={data}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius}
+          tooltipFontSize={tooltipFontSize}
+          activeIndex={activeIndex}
+          onActiveIndexChange={setActiveIndex}
+        />
+      </div>
+      <div className="grid max-h-full flex-1 grid-cols-2 content-center gap-x-4 gap-y-1 overflow-y-auto pr-1">
+        {data.map((item, index) => {
+          const isActive = activeIndex === index;
+          const isDimmed = activeIndex !== null && !isActive;
+          return (
+            <button
+              key={item.name}
+              type="button"
+              onMouseEnter={() => setActiveIndex(index)}
+              onMouseLeave={() => setActiveIndex(null)}
+              onFocus={() => setActiveIndex(index)}
+              onBlur={() => setActiveIndex(null)}
+              className={cn(
+                "flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors",
+                legendTextClass,
+                isActive && "bg-muted/70",
+                isDimmed && "opacity-45"
+              )}
+            >
+              <div
+                className={cn("shrink-0 rounded-full", swatchClass)}
+                style={{ backgroundColor: item.color }}
+              />
+              <span className={cn("truncate text-muted-foreground", isActive && "text-foreground")}>
+                {item.name}
+              </span>
+              <span className={cn("shrink-0 font-medium", isActive && "text-foreground")}>
+                {item.value}%
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /** Rows-per-page choices offered by the three table selects. */
 type PageSize = '50' | '100' | 'all';
@@ -1082,14 +1273,15 @@ const CO2eDashboard = () => {
             </motion.div>
 
             {/* Charts - Reduced Size */}
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
               {/* Trend Chart */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
+                className="h-full"
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm">CO₂e Savings Trend</CardTitle>
                   </CardHeader>
@@ -1147,58 +1339,23 @@ const CO2eDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
+                className="h-full"
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm">Savings by Asset Category</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="h-48 flex items-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={categoryData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={45}
-                            outerRadius={70}
-                            paddingAngle={2}
-                            dataKey="value"
-                          >
-                            {categoryData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: "hsl(var(--card))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: "8px",
-                              fontSize: "12px"
-                            }}
-                            formatter={(value: number, name: string, props: ChartTooltipPayload) => {
-                              const actualValue = props.payload?.actualValue || 0;
-                              return [
-                                `${value}% (${(actualValue / 1000).toFixed(2)}t CO₂e)`,
-                                "Contribution"
-                              ];
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="space-y-1.5 ml-3">
-                        {categoryData.map((item) => (
-                          <div key={item.name} className="flex items-center gap-2 text-xs">
-                            <div 
-                              className="w-2.5 h-2.5 rounded-full" 
-                              style={{ backgroundColor: item.color }}
-                            />
-                            <span className="text-muted-foreground">{item.name}</span>
-                            <span className="font-medium">{item.value}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <CardContent className="pl-6">
+                    <CategorySavingsPanel
+                      data={categoryData}
+                      heightClass="h-48"
+                      chartWidthClass="w-[38%]"
+                      innerRadius={40}
+                      outerRadius={62}
+                      legendTextClass="text-xs"
+                      swatchClass="h-2.5 w-2.5"
+                      tooltipFontSize="12px"
+                    />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1457,14 +1614,15 @@ const CO2eDashboard = () => {
       </motion.div>
 
       {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
         {/* Trend Chart */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
+          className="h-full"
         >
-          <Card>
+          <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-base">CO₂e Savings Trend</CardTitle>
             </CardHeader>
@@ -1521,57 +1679,22 @@ const CO2eDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
+          className="h-full"
         >
-          <Card>
+          <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-base">Savings by Asset Category</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="h-48 sm:h-64 flex items-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={isNarrowScreen ? 40 : 60}
-                      outerRadius={isNarrowScreen ? 60 : 90}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }}
-                      formatter={(value: number, name: string, props: ChartTooltipPayload) => {
-                        const actualValue = props.payload?.actualValue || 0;
-                        return [
-                          `${value}% (${(actualValue / 1000).toFixed(2)}t CO₂e)`,
-                          "Contribution"
-                        ];
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-2 ml-4">
-                  {categoryData.map((item) => (
-                    <div key={item.name} className="flex items-center gap-2 text-sm">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-muted-foreground">{item.name}</span>
-                      <span className="font-medium">{item.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <CardContent className="pl-6">
+              <CategorySavingsPanel
+                data={categoryData}
+                heightClass="h-64"
+                chartWidthClass="w-[38%]"
+                innerRadius={isNarrowScreen ? 40 : 56}
+                outerRadius={isNarrowScreen ? 60 : 84}
+                legendTextClass="text-sm"
+                swatchClass="h-3 w-3"
+              />
             </CardContent>
           </Card>
         </motion.div>
