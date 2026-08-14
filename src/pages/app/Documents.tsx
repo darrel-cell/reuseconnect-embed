@@ -180,22 +180,22 @@ const Documents = () => {
         transition={{ delay: index * 0.03 }}
       >
         <Card className="hover:shadow-md transition-shadow border-border/80">
-          <CardContent className="flex items-center gap-4 py-3">
-            <div className={cn("p-2.5 rounded-xl shrink-0", config.color)}>
+          <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:px-6 sm:py-3">
+            <div className={cn("p-2 sm:p-2.5 rounded-xl shrink-0", config.color)}>
               <Icon className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-foreground truncate text-sm">{title}</p>
-              <p className="text-xs text-muted-foreground">{config.label}</p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground truncate">{config.label}</p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 min-w-0">
                 <span className="truncate">{doc.clientName}</span>
-                <span>•</span>
-                <span className="font-mono">{doc.jobNumber}</span>
+                <span className="shrink-0">•</span>
+                <span className="font-mono truncate">{doc.jobNumber}</span>
               </div>
             </div>
-            <div className="text-right hidden sm:block shrink-0">
+            <div className="text-right hidden md:block shrink-0">
               <p className="text-xs text-muted-foreground">Generated</p>
-              <p className="text-sm font-medium">
+              <p className="text-sm font-medium whitespace-nowrap">
                 {new Date(doc.generatedDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
                   day: "numeric",
                   month: "short",
@@ -242,7 +242,7 @@ const Documents = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -257,9 +257,9 @@ const Documents = () => {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-4"
+        className="flex flex-col gap-3"
       >
-        <div className="relative flex-1 w-full min-w-0">
+        <div className="relative w-full min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by client or job number..."
@@ -268,7 +268,7 @@ const Documents = () => {
             className="pl-9 w-full"
           />
         </div>
-        <div className="sm:hidden w-full">
+        <div className="sm:hidden w-full min-w-0">
           <Select value={activeFilter} onValueChange={setActiveFilter}>
             <SelectTrigger className="w-full">
               <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -283,14 +283,14 @@ const Documents = () => {
             </SelectContent>
           </Select>
         </div>
-        <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 -mx-1 px-1">
+        <div className="hidden sm:flex flex-wrap gap-2">
           {filters.map((filter) => (
             <Button
               key={filter.value}
               variant={activeFilter === filter.value ? "secondary" : "outline"}
               size="sm"
               onClick={() => setActiveFilter(filter.value)}
-              className="whitespace-nowrap flex-shrink-0"
+              className="whitespace-nowrap"
             >
               {filter.label}
             </Button>
@@ -304,7 +304,7 @@ const Documents = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,6.5rem),1fr))] gap-3 sm:gap-4">
             {Object.entries(docTypeConfig).map(([type, config], index) => {
               const count = uniqueDocuments.filter((d) => d.type === type).length;
               const Icon = config.icon;
@@ -315,30 +315,33 @@ const Documents = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + index * 0.05 }}
+                  className="min-w-0"
                 >
                   <Card
                     className={cn(
-                      "cursor-pointer transition-all duration-200",
+                      "h-full cursor-pointer transition-colors duration-200",
                       isActive
-                        ? "ring-2 ring-primary ring-offset-2 ring-offset-background border-primary shadow-md scale-[1.02] bg-accent/60"
+                        ? "ring-2 ring-inset ring-primary border-primary shadow-md bg-accent/60"
                         : "border-border hover:shadow-md hover:border-muted-foreground/20"
                     )}
                     onClick={() => setActiveFilter(type)}
                   >
-                    <CardContent className="pt-4">
+                    <CardContent className="p-2.5 sm:p-3">
                       <div
                         className={cn(
-                          "inline-flex p-2 rounded-lg mb-2 transition-colors",
+                          "inline-flex p-1.5 sm:p-2 rounded-lg mb-1.5 sm:mb-2 transition-colors",
                           config.color,
                           isActive && "ring-1 ring-primary/30"
                         )}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </div>
-                      <p className={cn("text-2xl font-bold", isActive && "text-foreground")}>{count}</p>
+                      <p className={cn("text-lg sm:text-xl font-bold leading-tight", isActive && "text-foreground")}>
+                        {count}
+                      </p>
                       <p
                         className={cn(
-                          "text-xs",
+                          "text-[11px] sm:text-xs leading-snug break-words hyphens-auto",
                           isActive ? "font-semibold text-foreground" : "text-muted-foreground"
                         )}
                       >
@@ -378,9 +381,9 @@ const Documents = () => {
                       <CollapsibleTrigger asChild>
                         <button
                           type="button"
-                          className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/40 transition-colors"
+                          className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-muted/40 transition-colors"
                         >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
                             <Briefcase className="h-5 w-5" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -391,7 +394,7 @@ const Documents = () => {
                               {job.organisationName}
                             </p>
                           </div>
-                          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                          <span className="text-xs text-muted-foreground tabular-nums shrink-0 whitespace-nowrap">
                             {docs.length} doc{docs.length === 1 ? "" : "s"}
                           </span>
                           <ChevronDown
@@ -403,7 +406,7 @@ const Documents = () => {
                         </button>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="px-4 pb-4 pt-0 space-y-2 border-t border-border/60 bg-muted/20">
+                        <div className="px-3 sm:px-4 pb-4 pt-0 space-y-2 border-t border-border/60 bg-muted/20">
                           {docs.length === 0 ? (
                             <p className="text-sm text-muted-foreground py-4 text-center">
                               No documents match your filters for this job
