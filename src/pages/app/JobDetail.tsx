@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, type InputHTMLAttributes } from "react";
 import type { ParsedJmlDevice } from "@/lib/jml-booking-device-details";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -25,7 +25,10 @@ import {
   Package,
   AlertCircle,
   Upload,
-  Pencil
+  Pencil,
+  ChevronDown,
+  Folder,
+  Files
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +39,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { WorkflowTimeline } from "@/components/jobs/WorkflowTimeline";
 import { JobStatusBadge } from "@/components/jobs/JobStatusBadge";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
@@ -75,6 +84,11 @@ import { documentsService, type CompletionDocumentType } from "@/services/docume
 import { Input } from "@/components/ui/input";
 import { log } from '@/lib/log';
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import {
+  COMPLETION_DOC_ACCEPT,
+  MAX_COMPLETION_UPLOAD_FILES,
+  filterCompletionUploadFiles,
+} from "@/lib/completion-upload";
 
 function formatGbp(amount: number, withDecimals = true): string {
   return new Intl.NumberFormat("en-GB", {
@@ -116,6 +130,7 @@ const JobDetail = () => {
   const [uploadDocType, setUploadDocType] = useState<CompletionDocumentType>("certificate");
   const [uploadDocName, setUploadDocName] = useState("");
   const completionFileInputRef = useRef<HTMLInputElement>(null);
+  const completionFolderInputRef = useRef<HTMLInputElement>(null);
 
   const uploadCompletionMutation = useMutation({
     mutationFn: ({ files }: { files: File[] }) =>
@@ -130,9 +145,40 @@ const JobDetail = () => {
       toast.success(n === 1 ? "Document uploaded" : `${n} documents uploaded`);
       setUploadDocName("");
       if (completionFileInputRef.current) completionFileInputRef.current.value = "";
+      if (completionFolderInputRef.current) completionFolderInputRef.current.value = "";
     },
     onError: (e: Error) => toast.error(e.message || "Upload failed"),
   });
+
+  const queueCompletionUpload = (rawFiles: FileList | File[], fromFolder: boolean) => {
+    const totalPicked = Array.from(rawFiles).length;
+    const files = filterCompletionUploadFiles(rawFiles);
+    const skipped = totalPicked - files.length;
+
+    if (files.length === 0) {
+      toast.error(
+        fromFolder
+          ? "No allowed files in that folder (PDF, images, Excel, CSV, TXT, or ZIP)"
+          : "No allowed files selected"
+      );
+      return;
+    }
+
+    if (files.length > MAX_COMPLETION_UPLOAD_FILES) {
+      toast.error(
+        `Too many files (${files.length}). Upload at most ${MAX_COMPLETION_UPLOAD_FILES} at once.`
+      );
+      return;
+    }
+
+    if (skipped > 0) {
+      toast.message(
+        `Skipped ${skipped} unsupported file${skipped === 1 ? "" : "s"}; uploading ${files.length}.`
+      );
+    }
+
+    uploadCompletionMutation.mutate({ files });
+  };
 
   // Fetch booking if bookingId exists to get device details from status history
   const { data: booking } = useBooking(job?.bookingId || null);
@@ -1301,13 +1347,14 @@ const JobDetail = () => {
                 </>
               )}
 
-              {user?.role === "admin" && job.status === "completed" && (
+              {(user?.role === "admin" || user?.role === "head_of_operation") &&
+                job.status === "completed" && (
                 <div className="border-t pt-4 space-y-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Upload completion documents
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Certificates, grading reports, or other files for the client (PDF, images, Excel, CSV, or TXT — max 50MB per file, up to 40 files at once).
+                    Certificates, grading reports, or other files for the client (PDF, images, Excel, CSV, TXT, or ZIP — max 50MB per file, up to {MAX_COMPLETION_UPLOAD_FILES} at once). ZIP is stored as-is (not extracted). Folder pick uploads allowed files from all subfolders as separate documents.
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="completion-doc-type">Document type</Label>
@@ -1341,29 +1388,65 @@ const JobDetail = () => {
                     ref={completionFileInputRef}
                     type="file"
                     multiple
-                    accept=".pdf,.csv,.xlsx,.xls,.txt,application/pdf,image/jpeg,image/png,image/webp,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    accept={COMPLETION_DOC_ACCEPT}
                     className="hidden"
                     onChange={(e) => {
                       const list = e.target.files;
                       if (list?.length) {
-                        uploadCompletionMutation.mutate({ files: Array.from(list) });
+                        queueCompletionUpload(list, false);
                       }
+                      e.target.value = "";
                     }}
                   />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full"
-                    disabled={uploadCompletionMutation.isPending}
-                    onClick={() => completionFileInputRef.current?.click()}
-                  >
-                    {uploadCompletionMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Upload className="h-4 w-4 mr-2" />
-                    )}
-                    Choose files &amp; upload
-                  </Button>
+                  <input
+                    ref={completionFolderInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    // Non-standard: recursive folder pick (Chromium / Safari / Edge)
+                    {...({ webkitdirectory: "", directory: "" } as InputHTMLAttributes<HTMLInputElement>)}
+                    onChange={(e) => {
+                      const list = e.target.files;
+                      if (list?.length) {
+                        queueCompletionUpload(list, true);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        disabled={uploadCompletionMutation.isPending}
+                      >
+                        {uploadCompletionMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Upload className="h-4 w-4 mr-2" />
+                        )}
+                        Choose &amp; upload
+                        <ChevronDown className="h-4 w-4 ml-2 opacity-70" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+                      <DropdownMenuItem
+                        disabled={uploadCompletionMutation.isPending}
+                        onSelect={() => completionFileInputRef.current?.click()}
+                      >
+                        <Files className="h-4 w-4 mr-2" />
+                        Files
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={uploadCompletionMutation.isPending}
+                        onSelect={() => completionFolderInputRef.current?.click()}
+                      >
+                        <Folder className="h-4 w-4 mr-2" />
+                        Folder
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
             </CardContent>
