@@ -45,8 +45,8 @@ const Profile = lazy(() => import("./pages/app/Profile"));
 
 const queryClient = new QueryClient();
 
-const ClientOnly = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute allowedRoles={['client']}>{children}</ProtectedRoute>
+const EmbedPortalUser = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute allowedRoles={['client', 'partner']}>{children}</ProtectedRoute>
 );
 
 const App = () => (
@@ -73,9 +73,9 @@ const App = () => (
 
                 <Route
                   element={
-                    <ClientOnly>
+                    <EmbedPortalUser>
                       <AppLayout />
-                    </ClientOnly>
+                    </EmbedPortalUser>
                   }
                 >
                   <Route path="/dashboard" element={<Index />} />

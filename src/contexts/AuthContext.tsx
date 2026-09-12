@@ -61,12 +61,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     authService.getCurrentAuth().then((auth) => {
-      if (auth && auth.user?.role === 'client') {
+      const role = auth?.user?.role;
+      if (auth && (role === 'client' || role === 'partner')) {
         setAuthState({
           ...auth,
           token: token,
         });
-      } else if (auth && auth.user?.role !== 'client') {
+      } else if (auth && role) {
         clearEmbedSession();
         apiClient.setAuthToken(null);
         setAuthState({
