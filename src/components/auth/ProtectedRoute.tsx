@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
+import { isAdminLikeRole } from '@/lib/roles';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -33,7 +34,7 @@ export function ProtectedRoute({ children, allowedRoles, requireSuperAdmin }: Pr
     );
   }
 
-  const isPending = user && user.status === 'pending' && user.role !== 'admin';
+  const isPending = user && user.status === 'pending' && !isAdminLikeRole(user.role);
   const shouldDisableContent = isPending;
 
   if (allowedRoles && user && !hasRole(allowedRoles)) {

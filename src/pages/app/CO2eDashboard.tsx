@@ -50,6 +50,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { co2Service } from "@/services/co2.service";
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { isAdminLikeRole } from '@/lib/roles';
 
 /**
  * Recharts hands custom ticks and formatters a loosely-typed props bag; these
@@ -316,7 +317,7 @@ const CO2eDashboard = () => {
   const { data: serialStats = [], isLoading: isLoadingSerialStats } = useQuery({
     queryKey: ["co2SerialStats", user?.id],
     queryFn: () => co2Service.getTenantSerialStats(),
-    enabled: user?.role === "admin",
+    enabled: isAdminLikeRole(user?.role),
     staleTime: 60000,
   });
 
@@ -857,17 +858,17 @@ const CO2eDashboard = () => {
               <CardTitle className="text-base">CO₂e by Serial Number</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {user?.role !== "admin" && (
+              {!isAdminLikeRole(user?.role) && (
                 <Alert>
                   <AlertDescription>Serial-level CO₂ stats are available for admin users.</AlertDescription>
                 </Alert>
               )}
 
-              {user?.role === "admin" && isLoadingSerialStats && (
+              {isAdminLikeRole(user?.role) && isLoadingSerialStats && (
                 <p className="text-sm text-muted-foreground">Loading serial CO₂ stats...</p>
               )}
 
-              {user?.role === "admin" && !isLoadingSerialStats && (
+              {isAdminLikeRole(user?.role) && !isLoadingSerialStats && (
                 <>
                   <div className="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
                     <div className="min-w-[220px]">

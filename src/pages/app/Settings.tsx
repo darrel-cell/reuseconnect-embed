@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { authService } from "@/services/auth.service";
 import { useShowPasswordHints } from "@/hooks/useShowPasswordHints";
+import { isAdminLikeRole } from '@/lib/roles';
 
 // Default notification preferences used for initial state and "unsaved changes" checks
 const defaultNotifications = {
@@ -52,7 +53,7 @@ const SHOW_INTEGRATIONS = false;
 const Settings = () => {
   const { user } = useAuth();
   const isReseller = user?.role === 'partner';
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isAdminLikeRole(user?.role);
   const isClient = user?.role === 'client';
   const isDriver = user?.role === 'driver';
 

@@ -42,6 +42,7 @@ import { useNavigate } from "react-router-dom";
 import { getUnderlyingAssetCategoryNameForJml } from "@/lib/jml-assets";
 import type { AssetCategory } from "@/types/jobs";
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { isAdminLikeRole } from '@/lib/roles';
 
 type NewAssetLine = { key: string; categoryId: string; quantity: number };
 
@@ -1312,7 +1313,7 @@ const BookingDetail = () => {
                   </Link>
                 </Button>
               )}
-              {user?.role === 'admin' && (
+              {isAdminLikeRole(user?.role) && (
                 <Button
                   variant="destructive"
                   className="w-full"

@@ -32,6 +32,7 @@ import { co2eEquivalencies } from "@/lib/constants";
 import { filterJmlAssetCategories, getDeviceTypeOptionsForJmlCategory, getUnderlyingAssetCategoryNameForJml, inferDeviceTypeFromJmlCategory, isAccessoriesCategory, shouldShowDeviceTypeForJmlCategory, type JmlDeviceType } from "@/lib/jml-assets";
 import { log } from '@/lib/log';
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { isAdminLikeRole } from '@/lib/roles';
 
 interface LeaverDevice {
   make: string;
@@ -56,7 +57,7 @@ const JMLLeaver = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = isAdminLikeRole(user?.role);
   const isReseller = user?.role === "partner";
   const isClient = user?.role === "client";
 

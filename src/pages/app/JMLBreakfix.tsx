@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { filterJmlAssetCategories, getDeviceTypeOptionsForJmlCategory, getUnderlyingAssetCategoryNameForJml, inferDeviceTypeFromJmlCategory, isAccessoriesCategory, shouldShowDeviceTypeForJmlCategory, type JmlDeviceType } from "@/lib/jml-assets";
 import { co2eEquivalencies } from "@/lib/constants";
 import { log } from '@/lib/log';
+import { isAdminLikeRole } from '@/lib/roles';
 
 interface BrokenDevice {
   make: string;
@@ -55,7 +56,7 @@ const JMLBreakfix = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Role flags
-  const isAdmin = user?.role === "admin";
+  const isAdmin = isAdminLikeRole(user?.role);
   const isReseller = user?.role === "partner";
   const isClient = user?.role === "client";
 

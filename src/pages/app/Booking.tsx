@@ -52,6 +52,7 @@ import { JMLSubTypeSelector } from "@/components/booking/JMLSubTypeSelector";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
 import { log } from '@/lib/log';
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { isAdminLikeRole } from '@/lib/roles';
 
 const steps = [
   { id: 1, title: "Site Details", icon: Building2 },
@@ -119,7 +120,7 @@ const Booking = () => {
   // Determine user roles first (needed for conditional queries)
   const isReseller = user?.role === 'partner';
   const isClient = user?.role === 'client';
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isAdminLikeRole(user?.role);
   const today = new Date();
   
   // Load clients (for resellers and admin only) - only active clients for booking
@@ -582,7 +583,7 @@ const Booking = () => {
             description: `Booking ${booking.bookingNumber ?? booking.id} has been created.`,
           });
           // Redirect to Booking Queue page for admin, or bookings page for others
-          if (user?.role === 'admin') {
+          if (isAdminLikeRole(user?.role)) {
             navigate(`/admin/bookings`);
           } else {
             navigate(`/bookings`);

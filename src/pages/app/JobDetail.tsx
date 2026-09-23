@@ -85,6 +85,7 @@ import { Input } from "@/components/ui/input";
 import { log } from '@/lib/log';
 import { UK_TIME_ZONE } from '@/lib/datetime';
 import {
+import { isAdminLikeRole } from '@/lib/roles';
   COMPLETION_DOC_ACCEPT,
   MAX_COMPLETION_UPLOAD_FILES,
   filterCompletionUploadFiles,
@@ -469,7 +470,7 @@ const JobDetail = () => {
                     <p className="text-sm font-medium text-muted-foreground">Driver Assignment</p>
                     <div className="flex gap-2">
                       {/* Re-assign driver button (admin only, only for routed status) */}
-                      {user?.role === 'admin' && job.status === 'routed' && (
+                      {isAdminLikeRole(user?.role) && job.status === 'routed' && (
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -697,7 +698,7 @@ const JobDetail = () => {
                       <span className="font-semibold tabular-nums">
                         {formatGbp(job.buybackValue, false)}
                       </span>
-                      {user?.role === "admin" &&
+                      {isAdminLikeRole(user?.role) &&
                         job.status === "completed" && (
                           <Button
                             type="button"
@@ -802,7 +803,7 @@ const JobDetail = () => {
                             ? formatGbp(job.costOfServiceTotal)
                             : "—"}
                         </span>
-                        {user?.role === "admin" &&
+                        {isAdminLikeRole(user?.role) &&
                           job.status === "completed" && (
                             <Button
                               type="button"
@@ -910,7 +911,7 @@ const JobDetail = () => {
             </Card>
 
           {/* Evidence Review (Admin only) */}
-          {user?.role === 'admin' && (
+          {isAdminLikeRole(user?.role) && (
             <Card className="border-border/50 flex flex-col h-full">
               <CardHeader className="pb-3 flex-shrink-0">
                 <div className="flex items-center justify-between gap-2">
@@ -1347,7 +1348,7 @@ const JobDetail = () => {
                 </>
               )}
 
-              {(user?.role === "admin" || user?.role === "head_of_operation") &&
+              {isAdminLikeRole(user?.role) &&
                 job.status === "completed" && (
                 <div className="border-t pt-4 space-y-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">

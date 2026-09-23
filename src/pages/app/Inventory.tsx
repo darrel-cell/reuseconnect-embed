@@ -18,10 +18,11 @@ import { toast } from "sonner";
 import { InventoryItem, inventoryService, type InventoryLookupResult } from "@/services/inventory.service";
 import { compareInventoryIdentity } from "@/lib/serial-inventory-compare";
 import { SerialInventorySnapshot } from "@/components/inventory/SerialInventorySnapshot";
+import { isAdminLikeRole } from '@/lib/roles';
 
 const Inventory = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isAdminLikeRole(user?.role);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [inventoryPage, setInventoryPage] = useState(1);
   const [inventoryLimit, setInventoryLimit] = useState(20);

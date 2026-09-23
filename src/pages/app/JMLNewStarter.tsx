@@ -31,6 +31,7 @@ import { useCO2Calculation } from "@/hooks/useCO2";
 import { co2eEquivalencies } from "@/lib/constants";
 import { log } from '@/lib/log';
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { isAdminLikeRole } from '@/lib/roles';
 
 interface StarterDevice {
   make: string;
@@ -56,7 +57,7 @@ const JMLNewStarter = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Role flags
-  const isAdmin = user?.role === "admin";
+  const isAdmin = isAdminLikeRole(user?.role);
   const isReseller = user?.role === "partner";
   const isClient = user?.role === "client";
   const today = startOfDay(new Date());

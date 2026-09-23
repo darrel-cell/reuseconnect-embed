@@ -47,6 +47,7 @@ import {
 } from "@/lib/european-validation";
 import type { CreateSiteRequest, UpdateSiteRequest } from "@/services/site.service";
 import { log } from '@/lib/log';
+import { isAdminLikeRole } from '@/lib/roles';
 
 /**
  * The subset of a Nominatim geocoding result this screen reads.
@@ -78,7 +79,7 @@ type GeocodeResult = {
 
 const Sites = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isAdminLikeRole(user?.role);
   const isClient = user?.role === 'client';
   
   const [searchQuery, setSearchQuery] = useState("");

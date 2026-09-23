@@ -5,6 +5,7 @@ import { useAuth } from './auth-context';
 import { notificationsService } from '@/services/notifications.service';
 import { log } from '@/lib/log';
 import { NotificationContext, type NotificationContextType , type Notification } from './notification-context';
+import { isAdminLikeRole } from '@/lib/roles';
 
 // Notification type definition
 
@@ -73,7 +74,7 @@ const getNotificationsByRole = (role: string): Notification[] => {
       read: false,
       url: '/driver/jobs/job-002'
     });
-  } else if (role === 'admin') {
+  } else if (isAdminLikeRole(role)) {
     baseNotifications.unshift({
       id: '4',
       type: 'warning',

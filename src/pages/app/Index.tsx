@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useDashboardStats } from "@/hooks/useJobs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { log } from '@/lib/log';
+import { isAdminLikeRole } from '@/lib/roles';
 
 const Index = () => {
   const { user } = useAuth();
@@ -35,7 +36,7 @@ const Index = () => {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Welcome back, {welcomeName}</h2>
           <p className="text-muted-foreground">
-            {user?.role === 'admin' && "Here's what's happening with your ITAD operations"}
+            {isAdminLikeRole(user?.role) && "Here's what's happening with your ITAD operations"}
             {user?.role === 'client' && "Track your asset collections and environmental impact"}
             {user?.role === 'partner' && "Track ITAD process status for your clients and monitor outcomes"}
             {user?.role === 'driver' && "View your assigned routes and collection jobs"}

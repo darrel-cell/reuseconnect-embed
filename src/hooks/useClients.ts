@@ -6,8 +6,8 @@ import { useAuth } from '@/contexts/auth-context';
 export function useClients(filter?: { status?: string; resellerId?: string }) {
   const { user } = useAuth();
   
-  // Only enable query for admin and reseller roles
-  const enabled = !!user && (user.role === 'admin' || user.role === 'partner');
+  // Only enable query for admin-like and reseller roles
+  const enabled = !!user && (user.role === 'admin' || user.role === 'head_of_operation' || user.role === 'partner');
   
   return useQuery({
     queryKey: ['clients', user?.id, filter],
@@ -28,7 +28,7 @@ export function useClient(id: string) {
 
 export function useOrganisations(search?: string) {
   const { user } = useAuth();
-  const enabled = !!user && (user.role === 'admin' || user.role === 'partner');
+  const enabled = !!user && (user.role === 'admin' || user.role === 'head_of_operation' || user.role === 'partner');
 
   return useQuery({
     queryKey: ['organisations', user?.id, search],

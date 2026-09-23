@@ -12,6 +12,7 @@ import { canDriverEditJob } from "@/utils/job-helpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { isAdminLikeRole } from '@/lib/roles';
 
 const grades: { value: 'A' | 'B' | 'C' | 'D' | 'Recycled'; label: string; color: string }[] = [
   { value: 'A', label: 'Grade A - Excellent', color: 'bg-success/10 text-success' },
@@ -107,7 +108,7 @@ const BookingGradingReport = () => {
               <p className="text-sm text-muted-foreground mt-2">
                 Current status: <Badge variant="outline" className="ml-1">{booking.status}</Badge>
               </p>
-              {booking.status === 'sanitised' && user?.role === 'admin' && (
+              {booking.status === 'sanitised' && isAdminLikeRole(user?.role) && (
                 <Button className="mt-4" asChild>
                   <Link to={`/admin/grading/${id}`} className="text-inherit no-underline">
                     Go to Asset Grading
@@ -208,7 +209,7 @@ const BookingGradingReport = () => {
               <p className="text-sm text-muted-foreground mt-2">
                 Assets need to be graded through the Asset Grading page.
               </p>
-              {user?.role === 'admin' && (
+              {isAdminLikeRole(user?.role) && (
                 <Button className="mt-4" asChild>
                   <Link to={`/admin/grading/${id}`} className="text-inherit no-underline">
                     Go to Asset Grading

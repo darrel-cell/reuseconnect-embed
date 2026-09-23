@@ -16,6 +16,7 @@ import { useNotifications } from "@/contexts/notification-context";
 import { useAuth } from "@/contexts/auth-context";
 import { chromeTitleForPath } from "@/lib/page-titles";
 import { RouteFallback } from "@/components/RouteFallback";
+import { isAdminLikeRole } from '@/lib/roles';
 
 
 export function AppLayout() {
@@ -33,7 +34,7 @@ export function AppLayout() {
   
   // Check if user is pending approval
   const { user } = useAuth();
-  const isPending = user && user.status === 'pending' && user.role !== 'admin';
+  const isPending = user && user.status === 'pending' && !isAdminLikeRole(user.role);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

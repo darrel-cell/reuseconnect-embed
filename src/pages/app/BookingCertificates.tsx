@@ -12,6 +12,7 @@ import { canDriverEditJob } from "@/utils/job-helpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { isAdminLikeRole } from '@/lib/roles';
 
 const sanitisationMethods = [
   { value: 'blancco', label: 'Blancco Software Wipe' },
@@ -137,7 +138,7 @@ const BookingCertificates = () => {
                   ? "Assets need to be sanitised through the Sanitisation Management page."
                   : "Certificates will appear here once assets are collected and sanitised."}
               </p>
-              {(booking.status === 'collected' || booking.status === 'sanitised') && user?.role === 'admin' && (
+              {(booking.status === 'collected' || booking.status === 'sanitised') && isAdminLikeRole(user?.role) && (
                 <Button className="mt-4" asChild>
                   <Link to={`/admin/sanitisation/${id}`} className="text-inherit no-underline">
                     Go to Sanitisation Management

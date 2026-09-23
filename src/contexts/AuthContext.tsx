@@ -129,7 +129,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (roles: string[]): boolean => {
     if (!authState.user) return false;
-    return roles.includes(authState.user.role);
+    const userRole = authState.user.role;
+    const isHeadOfOperation = userRole === 'head_of_operation';
+    const adminEquivalent = isHeadOfOperation && roles.includes('admin');
+    const driverEquivalent = isHeadOfOperation && roles.includes('driver');
+    return (
+      roles.includes(userRole) ||
+      adminEquivalent ||
+      driverEquivalent ||
+      (!!authState.user.isSuperAdmin && roles.includes('admin'))
+    );
   };
 
   return (
