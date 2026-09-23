@@ -85,11 +85,11 @@ import { Input } from "@/components/ui/input";
 import { log } from '@/lib/log';
 import { UK_TIME_ZONE } from '@/lib/datetime';
 import {
-import { isAdminLikeRole } from '@/lib/roles';
   COMPLETION_DOC_ACCEPT,
   MAX_COMPLETION_UPLOAD_FILES,
   filterCompletionUploadFiles,
 } from "@/lib/completion-upload";
+import { isAdminLikeRole } from '@/lib/roles';
 
 function formatGbp(amount: number, withDecimals = true): string {
   return new Intl.NumberFormat("en-GB", {
