@@ -187,6 +187,7 @@ const BookingDetail = () => {
   const { data: assetCategories = [] } = useAssetCategories();
   const [isEditingAssets, setIsEditingAssets] = useState(false);
   const [assetQuantities, setAssetQuantities] = useState<Record<string, number>>({});
+  const [removedAssetIds, setRemovedAssetIds] = useState<string[]>([]);
   const [newAssetLines, setNewAssetLines] = useState<NewAssetLine[]>([]);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [reasonInput, setReasonInput] = useState("");
@@ -373,10 +374,16 @@ const BookingDetail = () => {
     return booking.assets.filter((a) => !!a.id);
   }, [booking?.assets]);
 
-  const bookedCategoryIds = useMemo(
-    () => new Set((booking?.assets || []).map((a) => String(a.categoryId || ""))),
-    [booking?.assets]
-  );
+  const removedAssetIdSet = useMemo(() => new Set(removedAssetIds), [removedAssetIds]);
+
+  const bookedCategoryIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const a of booking?.assets || []) {
+      if (a.id && removedAssetIdSet.has(a.id)) continue;
+      if (a.categoryId) ids.add(String(a.categoryId));
+    }
+    return ids;
+  }, [booking?.assets, removedAssetIdSet]);
 
   const selectableAssetCategories = useMemo(() => {
     const taken = new Set(bookedCategoryIds);
@@ -399,9 +406,15 @@ const BookingDetail = () => {
   };
 
   const buildAssetUpdatePayload = () => {
-    const updates = editableAssets.map((a) => ({
-      assetId: a.id,
-      quantity: Number(assetQuantities[a.id] ?? a.quantity),
+    const updates = editableAssets
+      .filter((a) => !removedAssetIdSet.has(a.id))
+      .map((a) => ({
+        assetId: a.id,
+        quantity: Number(assetQuantities[a.id] ?? a.quantity),
+      }));
+    const removals = removedAssetIds.map((assetId) => ({
+      assetId,
+      quantity: 0,
     }));
     const additions = newAssetLines
       .filter((line) => line.categoryId && line.quantity > 0)
@@ -410,7 +423,7 @@ const BookingDetail = () => {
         quantity: line.quantity,
       }));
 
-    return [...updates, ...additions];
+    return [...updates, ...removals, ...additions];
   };
 
   const validateAssetUpdatePayload = (payload: ReturnType<typeof buildAssetUpdatePayload>) => {
@@ -418,7 +431,12 @@ const BookingDetail = () => {
       toast.error("Add at least one asset or category before saving");
       return false;
     }
-    if (payload.some((p) => !Number.isInteger(p.quantity) || p.quantity <= 0)) {
+    const keptLines = payload.filter((p) => p.quantity > 0);
+    if (!keptLines.length) {
+      toast.error("A booking must keep at least one asset line");
+      return false;
+    }
+    if (keptLines.some((p) => !Number.isInteger(p.quantity))) {
       toast.error("All quantities must be positive whole numbers");
       return false;
     }
@@ -432,6 +450,7 @@ const BookingDetail = () => {
   const resetAssetEditing = () => {
     setIsEditingAssets(false);
     setAssetQuantities({});
+    setRemovedAssetIds([]);
     setNewAssetLines([]);
   };
 
@@ -470,7 +489,15 @@ const BookingDetail = () => {
 
   const statusColor = getStatusColor(booking.status);
   const statusLabel = getStatusLabelExtended(booking.status, booking.bookingType);
-  const totalAssets = displayAssets.reduce((sum, a) => sum + a.quantity, 0);
+  const visibleAssets = isEditingAssets
+    ? displayAssets.filter((a) => !a.id || !removedAssetIdSet.has(a.id))
+    : displayAssets;
+  const totalAssets = isEditingAssets
+    ? visibleAssets.reduce(
+        (sum, a) => sum + (a.id ? Number(assetQuantities[a.id] ?? a.quantity) : a.quantity),
+        0
+      ) + newAssetLines.reduce((sum, line) => sum + (line.quantity || 0), 0)
+    : displayAssets.reduce((sum, a) => sum + a.quantity, 0);
   
   const roundTripDistanceKm = booking.roundTripDistanceKm || 0;
   const roundTripDistanceMiles = booking.roundTripDistanceMiles || 0;
@@ -927,6 +954,7 @@ const BookingDetail = () => {
                           initial[a.id] = a.quantity;
                         });
                         setAssetQuantities(initial);
+                        setRemovedAssetIds([]);
                         setNewAssetLines([]);
                         setIsEditingAssets(true);
                         return;
@@ -952,26 +980,50 @@ const BookingDetail = () => {
                 </div>
               )}
               <div className="space-y-3">
-                {displayAssets.map((asset, index) => (
-                  <div key={index} className="p-3 rounded-lg bg-muted/50 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{asset.categoryName}</span>
+                {visibleAssets.map((asset, index) => (
+                  <div key={asset.id || `display-${index}`} className="p-3 rounded-lg bg-muted/50 space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium truncate">{asset.categoryName}</span>
                       </div>
                       {isEditingAssets && user?.isSuperAdmin && asset.id ? (
-                        <Input
-                          type="number"
-                          min={1}
-                          className="w-24 h-8"
-                          value={assetQuantities[asset.id] ?? asset.quantity}
-                          onChange={(e) =>
-                            setAssetQuantities((prev) => ({
-                              ...prev,
-                              [asset.id]: Number(e.target.value),
-                            }))
-                          }
-                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Input
+                            type="number"
+                            min={1}
+                            className="w-24 h-8"
+                            value={assetQuantities[asset.id] ?? asset.quantity}
+                            onChange={(e) =>
+                              setAssetQuantities((prev) => ({
+                                ...prev,
+                                [asset.id]: Number(e.target.value),
+                              }))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            aria-label={`Remove ${asset.categoryName}`}
+                            title={
+                              visibleAssets.filter((a) => a.id).length + newAssetLines.length <= 1
+                                ? "A booking must keep at least one asset line"
+                                : `Remove ${asset.categoryName}`
+                            }
+                            disabled={
+                              visibleAssets.filter((a) => a.id).length + newAssetLines.length <= 1
+                            }
+                            onClick={() =>
+                              setRemovedAssetIds((prev) =>
+                                prev.includes(asset.id) ? prev : [...prev, asset.id]
+                              )
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       ) : (
                         <Badge variant="secondary">{asset.quantity} units</Badge>
                       )}
