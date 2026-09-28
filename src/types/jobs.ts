@@ -64,6 +64,9 @@ export interface Job {
   doorLiftSize?: string | null;
   roadWorksPublicEvents?: string | null;
   manualHandlingRequirements?: string | null;
+  collectionDetailsUpdatedAt?: string | null;
+  collectionDetailsUpdatedByName?: string | null;
+  collectionDetailsUpdatedByRole?: string | null;
   evidence?: Evidence | Evidence[]; // Can be single evidence (backward compat) or array of evidence per status
   certificates: Certificate[];
 }

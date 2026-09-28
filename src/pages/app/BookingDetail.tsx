@@ -3,7 +3,7 @@ import { log } from '@/lib/log';
 import type { Booking } from "@/mocks/mock-entities";
 import type { ParsedJmlDevice } from "@/lib/jml-booking-device-details";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, MapPin, Package, Truck, Route, Fuel, PackageSearch, Loader2, CheckCircle2, Shield, Award, FileCheck, User, Phone, Smartphone, Warehouse, Navigation, FileText, Download, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Package, Truck, Route, Fuel, PackageSearch, Loader2, CheckCircle2, Shield, Award, FileCheck, User, Phone, Smartphone, Warehouse, Navigation, FileText, Download, Plus, Trash2, Pencil, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import {
 import { useBooking } from "@/hooks/useBookings";
 import { useDeleteBooking } from "@/hooks/useBookings";
 import { useUpdateBookingAssets } from "@/hooks/useBookings";
+import { useUpdateBookingJourneyFields } from "@/hooks/useBookings";
 import { useAssetCategories } from "@/hooks/useAssets";
 import { useJob } from "@/hooks/useJobs";
 import { useBookingDocuments } from "@/hooks/useBookingDocuments";
@@ -36,13 +37,22 @@ import { cn } from "@/lib/utils";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { useDriver } from "@/hooks/useDrivers";
 import type { Driver } from "@/types/jobs";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUnderlyingAssetCategoryNameForJml } from "@/lib/jml-assets";
 import type { AssetCategory } from "@/types/jobs";
 import { UK_TIME_ZONE } from '@/lib/datetime';
 import { isAdminLikeRole } from '@/lib/roles';
+import { bookingTitle, isPartnerBooking } from "@/lib/booking-display";
+import {
+  COLLECTION_DETAIL_FIELDS,
+  collectionDetailsFromBooking,
+  emptyCollectionDetails,
+  formatCollectionDetailsAudit,
+  hasAnyCollectionDetail,
+  type CollectionDetails,
+} from "@/lib/collection-details";
 
 type NewAssetLine = { key: string; categoryId: string; quantity: number };
 
@@ -184,6 +194,7 @@ const BookingDetail = () => {
   const { data: booking, isLoading, error } = useBooking(id || null);
   const deleteBooking = useDeleteBooking();
   const updateBookingAssets = useUpdateBookingAssets();
+  const updateJourneyFields = useUpdateBookingJourneyFields();
   const { data: assetCategories = [] } = useAssetCategories();
   const [isEditingAssets, setIsEditingAssets] = useState(false);
   const [assetQuantities, setAssetQuantities] = useState<Record<string, number>>({});
@@ -192,8 +203,18 @@ const BookingDetail = () => {
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [reasonInput, setReasonInput] = useState("");
   const [pendingReasonAction, setPendingReasonAction] = useState<null | "delete_booking" | "update_assets">(null);
+  const [isEditingCollection, setIsEditingCollection] = useState(false);
+  const [collectionDraft, setCollectionDraft] = useState<CollectionDetails>(emptyCollectionDetails());
+  const canEditCollection = isAdminLikeRole(user?.role);
   const { data: relatedJob } = useJob(booking?.jobId || null);
   const { data: bookingDocuments = [], isLoading: loadingBookingDocuments } = useBookingDocuments(id || null);
+
+  useEffect(() => {
+    if (booking) {
+      setCollectionDraft(collectionDetailsFromBooking(booking));
+    }
+  }, [booking]);
+
   // Fetch driver details if booking has driverId but no relatedJob driver
   const { data: driverDetailsData } = useDriver(
     booking?.driverId && !relatedJob?.driver ? booking.driverId : null
@@ -436,7 +457,15 @@ const BookingDetail = () => {
       toast.error("A booking must keep at least one asset line");
       return false;
     }
-    if (keptLines.some((p) => !Number.isInteger(p.quantity))) {
+    // Quantity 0 is only valid via the trash button (removedAssetIds). An emptied
+    // qty field must not silently delete a line on save.
+    const invalidKeptQty = editableAssets
+      .filter((a) => !removedAssetIdSet.has(a.id))
+      .some((a) => {
+        const qty = Number(assetQuantities[a.id] ?? a.quantity);
+        return !Number.isInteger(qty) || qty < 1;
+      });
+    if (invalidKeptQty || newAssetLines.some((line) => !Number.isInteger(line.quantity) || line.quantity < 1)) {
       toast.error("All quantities must be positive whole numbers");
       return false;
     }
@@ -536,7 +565,7 @@ const BookingDetail = () => {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-1">
-          <h2 className="text-2xl font-bold text-foreground">{booking.organisationName || booking.clientName}</h2>
+          <h2 className="text-2xl font-bold text-foreground">{bookingTitle(booking)}</h2>
             <BookingTypeBadge 
               bookingType={booking.bookingType} 
               jmlSubType={booking.jmlSubType}
@@ -734,6 +763,61 @@ const BookingDetail = () => {
                     <p className="whitespace-pre-wrap">{booking.cancellationNotes}</p>
                   </AlertDescription>
                 </Alert>
+              )}
+
+              {isPartnerBooking(booking) && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-secondary">
+                    <Building2 className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Client</p>
+                    <p className="font-medium">{booking.clientName}</p>
+                    {(booking.clientEmail || booking.clientPhone) && (
+                      <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
+                        {booking.clientEmail && <span>{booking.clientEmail}</span>}
+                        {booking.clientPhone && (
+                          <span className="inline-flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {booking.clientPhone}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {booking.createdByName && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-secondary">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm text-muted-foreground">Booked by</p>
+                      {isPartnerBooking(booking) ? (
+                        <Badge variant="outline" className="text-xs">
+                          Partner{booking.resellerName ? ` · ${booking.resellerName}` : ''}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">Direct</Badge>
+                      )}
+                    </div>
+                    <p className="font-medium">{booking.createdByName}</p>
+                    {(booking.createdByEmail || booking.createdByPhone) && (
+                      <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
+                        {booking.createdByEmail && <span>{booking.createdByEmail}</span>}
+                        {booking.createdByPhone && (
+                          <span className="inline-flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {booking.createdByPhone}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* JML Employee Details (match style of site details for ITAD) */}
@@ -936,6 +1020,116 @@ const BookingDetail = () => {
               )}
             </CardContent>
           </Card>
+
+          {(booking.bookingType !== 'jml' || hasAnyCollectionDetail(collectionDetailsFromBooking(booking)) || isEditingCollection) && (
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+                <div>
+                  <CardTitle>Collection Details</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Site access and handling information for the collection.
+                  </p>
+                  {formatCollectionDetailsAudit(booking) && (
+                    <p className="text-xs text-muted-foreground mt-1">{formatCollectionDetailsAudit(booking)}</p>
+                  )}
+                </div>
+                {canEditCollection && !isEditingCollection && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCollectionDraft(collectionDetailsFromBooking(booking));
+                      setIsEditingCollection(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {isEditingCollection ? (
+                  <>
+                    {COLLECTION_DETAIL_FIELDS.map((field) => (
+                      <div key={field.key} className="space-y-1.5">
+                        <Label htmlFor={`detail-${field.key}`} className="text-sm">{field.label}</Label>
+                        <Input
+                          id={`detail-${field.key}`}
+                          placeholder={field.placeholder}
+                          value={collectionDraft[field.key]}
+                          onChange={(e) =>
+                            setCollectionDraft({
+                              ...collectionDraft,
+                              [field.key]: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    ))}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        disabled={updateJourneyFields.isPending}
+                        onClick={async () => {
+                          if (!booking.id) return;
+                          try {
+                            await updateJourneyFields.mutateAsync({
+                              bookingId: booking.id,
+                              fields: collectionDraft,
+                            });
+                            toast.success("Collection details updated");
+                            setIsEditingCollection(false);
+                          } catch (error) {
+                            toast.error("Failed to update collection details", {
+                              description: error instanceof Error ? error.message : "Please try again.",
+                            });
+                          }
+                        }}
+                      >
+                        {updateJourneyFields.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            Saving…
+                          </>
+                        ) : (
+                          "Save"
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={updateJourneyFields.isPending}
+                        onClick={() => {
+                          setCollectionDraft(collectionDetailsFromBooking(booking));
+                          setIsEditingCollection(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </>
+                ) : hasAnyCollectionDetail(collectionDetailsFromBooking(booking)) ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {COLLECTION_DETAIL_FIELDS.map((field) => {
+                      const value = booking[field.key];
+                      if (!value) return null;
+                      return (
+                        <div key={field.key}>
+                          <p className="text-xs text-muted-foreground">{field.label}</p>
+                          <p className="font-medium text-sm">{value}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No collection details recorded yet.
+                    {canEditCollection ? " Use Edit to add them after speaking with the booker." : ""}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

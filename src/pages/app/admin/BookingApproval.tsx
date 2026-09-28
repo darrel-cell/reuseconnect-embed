@@ -8,19 +8,25 @@ import {
   FileCheck,
   Package,
   XCircle,
-  MapPin,
-  Calendar,
+  Pencil,
   PoundSterling,
   Leaf,
   AlertCircle,
   Shield,
   Award,
   Download,
-  Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { bookingClientContact, bookingCreatorBadge, bookingTitle } from "@/lib/booking-display";
+import { CollectionDetailsEditDialog } from "@/components/booking/CollectionDetailsEditDialog";
+import {
+  COLLECTION_DETAIL_FIELDS,
+  collectionDetailsFromBooking,
+  formatCollectionDetailsAudit,
+  hasAnyCollectionDetail,
+} from "@/lib/collection-details";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +37,7 @@ import { useGradingRecords } from "@/hooks/useGrading";
 import { useSanitisationRecords } from "@/hooks/useSanitisation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { inventoryService } from "@/services/inventory.service";
@@ -87,6 +93,39 @@ function isFreeCourierBooking(booking?: {
   });
 }
 
+function DetailField({ label, value, sub }: { label: string; value?: ReactNode; sub?: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="font-medium break-words">{value || '—'}</p>
+      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function DetailGroup({
+  title,
+  action,
+  footer,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-2 min-h-8">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h4>
+        {action}
+      </div>
+      <div className="grid gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+      {footer && <p className="text-xs text-muted-foreground">{footer}</p>}
+    </section>
+  );
+}
+
 const BookingApproval = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -134,6 +173,7 @@ const BookingApproval = () => {
   const shouldRedirectToFinalReview = isGraded || isInventory || isDeliveredJmlFinalReview;
   const bookingQueuePath = "/admin/bookings";
   const isFreeCollectionBooking = useMemo(() => isFreeCourierBooking(booking), [booking]);
+  const [isEditingCollection, setIsEditingCollection] = useState(false);
 
   useEffect(() => {
     if (!booking || !id) return;
@@ -561,106 +601,85 @@ const BookingApproval = () => {
         <CardHeader>
           <CardTitle>Booking Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="font-medium text-muted-foreground text-sm">Organisation</p>
-              <p className="font-semibold">{booking.organisationName || booking.clientName}</p>
-            </div>
-            {booking.createdByName && (
-              <div>
-                <p className="font-medium text-muted-foreground text-sm">Booked by</p>
-                <p>{booking.createdByName}</p>
-              </div>
-            )}
+        <CardContent className="space-y-5">
+          {(() => {
+            const contact = bookingClientContact(booking);
+            return (
+              <DetailGroup title="Client">
+                <DetailField label="Organisation" value={bookingTitle(booking)} />
+                <DetailField label="Client Name" value={contact.name} />
+                <DetailField label="Booked By" value={bookingCreatorBadge(booking) || 'Client'} />
+                <DetailField label="Email" value={contact.email && <span className="break-all">{contact.email}</span>} />
+                <DetailField label="Phone" value={contact.phone} />
+              </DetailGroup>
+            );
+          })()}
+
+          <div className="border-t" />
+
+          <DetailGroup title="Collection">
             {booking.jmlSubType === 'mover' && booking.currentAddress ? (
-              isDeliveredJmlFinalReview ? (
-                <>
-                  <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="font-medium">Site (Collection)</p>
-                      <p className="text-muted-foreground">{booking.currentSiteName || 'Previous location'}</p>
-                      <p className="text-muted-foreground text-xs">{booking.currentAddress}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm pt-1 border-t border-border/60">
-                    <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                    <div>
-                      <p className="font-medium">Site (Delivery)</p>
-                      <p className="text-muted-foreground">{booking.siteName}</p>
-                      <p className="text-muted-foreground text-xs">{booking.siteAddress}</p>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="font-medium">From (Collection)</p>
-                      <p className="text-muted-foreground">{booking.currentSiteName || 'Current Address'}</p>
-                      <p className="text-muted-foreground text-xs">{booking.currentAddress}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                    <div>
-                      <p className="font-medium">To (Delivery)</p>
-                      <p className="text-muted-foreground">{booking.siteName}</p>
-                      <p className="text-muted-foreground text-xs">{booking.siteAddress}</p>
-                    </div>
-                  </div>
-                </>
-              )
+              <>
+                <DetailField
+                  label={isDeliveredJmlFinalReview ? 'Site (Collection)' : 'From (Collection)'}
+                  value={booking.currentSiteName || (isDeliveredJmlFinalReview ? 'Previous location' : 'Current Address')}
+                  sub={booking.currentAddress}
+                />
+                <DetailField
+                  label={isDeliveredJmlFinalReview ? 'Site (Delivery)' : 'To (Delivery)'}
+                  value={booking.siteName}
+                  sub={booking.siteAddress}
+                />
+              </>
             ) : (
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Site</p>
-                  <p className="text-muted-foreground">{booking.siteName}</p>
-                  <p className="text-muted-foreground text-xs">{booking.siteAddress}</p>
-                </div>
-              </div>
+              <DetailField label="Site" value={booking.siteName} sub={booking.siteAddress} />
             )}
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Scheduled Date</p>
-                <p className="text-muted-foreground">
-                  {new Date(booking.scheduledDate).toLocaleDateString("en-GB", { timeZone: UK_TIME_ZONE,
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-            </div>
-          </div>
+            <DetailField
+              label="Scheduled Date"
+              value={new Date(booking.scheduledDate).toLocaleDateString("en-GB", {
+                timeZone: UK_TIME_ZONE,
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            />
+            {booking.roundTripDistanceKm && booking.roundTripDistanceKm > 0 ? (
+              <DetailField
+                label="Return Journey Mileage"
+                value={`${(booking.roundTripDistanceMiles ?? booking.roundTripDistanceKm * 0.621371).toFixed(1)} miles (${booking.roundTripDistanceKm.toFixed(1)} km)`}
+                sub="From collection site to warehouse and return"
+              />
+            ) : null}
+            {!isFreeCollectionBooking && booking.charityPercent > 0 && (
+              <DetailField label="Charity Donation" value={`${booking.charityPercent}%`} />
+            )}
+          </DetailGroup>
 
-          {booking.roundTripDistanceKm && booking.roundTripDistanceKm > 0 && (
-            <div className="flex items-center gap-2 text-sm pt-2 border-t">
-              <Truck className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Return Journey Mileage</p>
-                <p className="text-muted-foreground">
-                  {booking.roundTripDistanceMiles 
-                    ? `${booking.roundTripDistanceMiles.toFixed(1)} miles (${booking.roundTripDistanceKm.toFixed(1)} km)`
-                    : `${(booking.roundTripDistanceKm * 0.621371).toFixed(1)} miles (${booking.roundTripDistanceKm.toFixed(1)} km)`}
-                </p>
-                <p className="text-muted-foreground text-xs mt-1">
-                  From collection site to warehouse and return
-                </p>
-              </div>
-            </div>
-          )}
-
-          {!isFreeCollectionBooking && booking.charityPercent > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <p className="font-medium">Charity Donation:</p>
-              <Badge variant="outline">{booking.charityPercent}%</Badge>
-            </div>
+          {(booking.bookingType !== 'jml' || hasAnyCollectionDetail(collectionDetailsFromBooking(booking))) && (
+            <>
+              <div className="border-t" />
+              <DetailGroup
+                title="Collection Details"
+                action={
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingCollection(true)}>
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                }
+                footer={formatCollectionDetailsAudit(booking)}
+              >
+                {COLLECTION_DETAIL_FIELDS.map((field) => (
+                  <DetailField key={field.key} label={field.label} value={booking[field.key]} />
+                ))}
+              </DetailGroup>
+              <CollectionDetailsEditDialog
+                bookingId={booking.id}
+                booking={booking}
+                open={isEditingCollection}
+                onOpenChange={setIsEditingCollection}
+              />
+            </>
           )}
         </CardContent>
       </Card>

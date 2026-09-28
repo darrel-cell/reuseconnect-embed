@@ -63,6 +63,8 @@ export interface Booking {
   clientId: string;
   clientName: string;
   organisationName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
   resellerId?: string;
   resellerName?: string;
   siteName: string;
@@ -110,6 +112,11 @@ export interface Booking {
   createdAt: string;
   createdBy: string;
   createdByName?: string;
+  createdByEmail?: string;
+  createdByPhone?: string;
+  creatorName?: string;
+  creatorRole?: string;
+  isPartnerBooking?: boolean;
   scheduledBy?: string;
   scheduledAt?: string;
   collectedAt?: string;
@@ -118,6 +125,18 @@ export interface Booking {
   completedAt?: string;
   notes?: string;
   cancellationNotes?: string;
+  // Collection / chain-of-custody details
+  dial2Collection?: string | null;
+  securityRequirements?: string | null;
+  idRequired?: string | null;
+  loadingBayLocation?: string | null;
+  vehicleHeightRestrictions?: string | null;
+  doorLiftSize?: string | null;
+  roadWorksPublicEvents?: string | null;
+  manualHandlingRequirements?: string | null;
+  collectionDetailsUpdatedAt?: string | null;
+  collectionDetailsUpdatedByName?: string | null;
+  collectionDetailsUpdatedByRole?: string | null;
   // JML fields
   bookingType?: 'itad_collection' | 'free_collection' | 'jml';
   jmlSubType?: 'new_starter' | 'leaver' | 'breakfix' | 'mover';

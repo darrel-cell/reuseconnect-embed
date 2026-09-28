@@ -22,7 +22,8 @@ import {
   Zap,
   Fuel,
   AlertCircle,
-  UserPlus
+  UserPlus,
+  ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,12 +53,18 @@ import { JMLSubTypeSelector } from "@/components/booking/JMLSubTypeSelector";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
 import { log } from '@/lib/log';
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import {
+  COLLECTION_DETAIL_FIELDS,
+  emptyCollectionDetails,
+  type CollectionDetails,
+} from "@/lib/collection-details";
 import { isAdminLikeRole } from '@/lib/roles';
 
 const steps = [
   { id: 1, title: "Site Details", icon: Building2 },
-  { id: 2, title: "Assets", icon: Package },
-  { id: 3, title: "Review & Submit", icon: Calculator },
+  { id: 2, title: "Collection Details", icon: ClipboardList },
+  { id: 3, title: "Assets", icon: Package },
+  { id: 4, title: "Review & Submit", icon: Calculator },
 ];
 const FREE_COURIER_MAX_ITEMS = 5;
 const FREE_COURIER_MAX_WEIGHT_KG = 30;
@@ -95,7 +102,12 @@ const Booking = () => {
   const [charityPercent, setCharityPercent] = useState(10);
   const [selectedVehicleType, setSelectedVehicleType] = useState<'petrol' | 'diesel' | 'electric'>('petrol');
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+  const [collectionDetails, setCollectionDetails] = useState<CollectionDetails>(emptyCollectionDetails);
   const isCourierCollectionBooking = bookingType === "courier_collection";
+  const needsCollectionDetails = bookingType === "itad" || bookingType === "courier_collection";
+  const hasRequiredCollectionDetails =
+    !needsCollectionDetails ||
+    COLLECTION_DETAIL_FIELDS.every((f) => collectionDetails[f.key].trim() !== "");
 
   useLayoutEffect(() => {
     if (location.pathname === "/bookings/jml") {
@@ -426,13 +438,16 @@ const Booking = () => {
       return hasRequiredFields;
     }
     if (currentStep === 2) {
+      return hasRequiredCollectionDetails;
+    }
+    if (currentStep === 3) {
       if (isCourierCollectionBooking && !courierEligibleAssetsSummary.isEligible) {
         return false;
       }
       return totalAssets > 0;
     }
-    if (currentStep === 3) {
-      // For step 3, validate all previous steps are complete
+    if (currentStep === 4) {
+      // For the review step, validate all previous steps are complete
       // For admin/reseller: require at least one active client
       if ((isReseller || isAdmin) && !isLoadingClients && clients.length === 0) {
         return false;
@@ -446,7 +461,8 @@ const Booking = () => {
         siteDetails.street?.trim() &&
         siteDetails.city?.trim() &&
         siteDetails.postcode?.trim() &&
-        scheduledDate !== undefined
+        scheduledDate !== undefined &&
+        hasRequiredCollectionDetails
       );
       const hasStep2Fields = totalAssets > 0;
       if (isCourierCollectionBooking && !courierEligibleAssetsSummary.isEligible) {
@@ -576,6 +592,18 @@ const Booking = () => {
         preferredVehicleType: selectedVehicleType, // Default petrol applies when no fuel selector is shown
         bookingType: bookingType === 'jml' ? 'jml' : bookingType === 'courier_collection' ? 'free_collection' : 'itad_collection',
         coordinates: siteLocation || undefined,
+        ...(needsCollectionDetails
+          ? {
+              dial2Collection: collectionDetails.dial2Collection.trim(),
+              securityRequirements: collectionDetails.securityRequirements.trim(),
+              idRequired: collectionDetails.idRequired.trim(),
+              loadingBayLocation: collectionDetails.loadingBayLocation.trim(),
+              vehicleHeightRestrictions: collectionDetails.vehicleHeightRestrictions.trim(),
+              doorLiftSize: collectionDetails.doorLiftSize.trim(),
+              roadWorksPublicEvents: collectionDetails.roadWorksPublicEvents.trim(),
+              manualHandlingRequirements: collectionDetails.manualHandlingRequirements.trim(),
+            }
+          : {}),
       },
       {
         onSuccess: (booking) => {
@@ -1102,6 +1130,46 @@ const Booking = () => {
           >
             <Card>
               <CardHeader>
+                <CardTitle>Collection Details</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Site access and handling information for the collection team. Visible on booking details for all users.
+                </p>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                {COLLECTION_DETAIL_FIELDS.map((field) => (
+                  <div key={field.key} className="space-y-1.5">
+                    <Label htmlFor={field.key} className="text-sm">
+                      {field.label} <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id={field.key}
+                      placeholder={field.placeholder}
+                      value={collectionDetails[field.key]}
+                      onChange={(e) =>
+                        setCollectionDetails({
+                          ...collectionDetails,
+                          [field.key]: e.target.value,
+                        })
+                      }
+                      className="h-9"
+                      required
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {currentStep === 3 && (
+          <motion.div
+            key="step3"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <Card>
+              <CardHeader>
                 <CardTitle>Select Assets for Collection</CardTitle>
               </CardHeader>
               <CardContent>
@@ -1400,9 +1468,9 @@ const Booking = () => {
           </motion.div>
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <motion.div
-            key="step3"
+            key="step4"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -1463,6 +1531,24 @@ const Booking = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {needsCollectionDetails && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Collection Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {COLLECTION_DETAIL_FIELDS.map((field) => (
+                      <div key={field.key} className="flex justify-between text-sm gap-4">
+                        <span className="text-muted-foreground shrink-0">{field.label}</span>
+                        <span className="font-semibold text-foreground text-right break-words">
+                          {collectionDetails[field.key].trim() || "—"}
+                        </span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="bg-gradient-eco border-primary/20 md:col-span-2">
                 <CardHeader>
@@ -1682,7 +1768,7 @@ const Booking = () => {
           Back
         </Button>
 
-        {currentStep < 3 ? (
+        {currentStep < steps.length ? (
           <Button
           variant="outline"
             onClick={() => setCurrentStep((s) => s + 1)}

@@ -33,6 +33,17 @@ export interface BackendJob {
   currentSiteName?: string;
   currentLat?: number;
   currentLng?: number;
+  dial2Collection?: string | null;
+  securityRequirements?: string | null;
+  idRequired?: string | null;
+  loadingBayLocation?: string | null;
+  vehicleHeightRestrictions?: string | null;
+  doorLiftSize?: string | null;
+  roadWorksPublicEvents?: string | null;
+  manualHandlingRequirements?: string | null;
+  collectionDetailsUpdatedAt?: string | null;
+  collectionDetailsUpdatedByName?: string | null;
+  collectionDetailsUpdatedByRole?: string | null;
   assets?: BackendJobAsset[];
   driver?: BackendDriver | null;
   evidence?: BackendEvidence[] | BackendEvidence | null; // Can be array (new format) or single object (backward compatibility)
@@ -275,6 +286,17 @@ export function transformJob(backendJob: BackendJob): Job {
     currentSiteName: backendJob.currentSiteName,
     currentLat: backendJob.currentLat,
     currentLng: backendJob.currentLng,
+    dial2Collection: backendJob.dial2Collection ?? null,
+    securityRequirements: backendJob.securityRequirements ?? null,
+    idRequired: backendJob.idRequired ?? null,
+    loadingBayLocation: backendJob.loadingBayLocation ?? null,
+    vehicleHeightRestrictions: backendJob.vehicleHeightRestrictions ?? null,
+    doorLiftSize: backendJob.doorLiftSize ?? null,
+    roadWorksPublicEvents: backendJob.roadWorksPublicEvents ?? null,
+    manualHandlingRequirements: backendJob.manualHandlingRequirements ?? null,
+    collectionDetailsUpdatedAt: backendJob.collectionDetailsUpdatedAt ?? null,
+    collectionDetailsUpdatedByName: backendJob.collectionDetailsUpdatedByName ?? null,
+    collectionDetailsUpdatedByRole: backendJob.collectionDetailsUpdatedByRole ?? null,
     evidence: transformedEvidence as Evidence[] | Evidence | undefined,
     certificates: (backendJob.certificates || []).map(transformCertificate),
   };

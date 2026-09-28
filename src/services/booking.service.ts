@@ -35,6 +35,14 @@ export interface BookingRequest {
     lat: number;
     lng: number;
   };
+  dial2Collection?: string;
+  securityRequirements?: string;
+  idRequired?: string;
+  loadingBayLocation?: string;
+  vehicleHeightRestrictions?: string;
+  doorLiftSize?: string;
+  roadWorksPublicEvents?: string;
+  manualHandlingRequirements?: string;
 }
 
 export interface BookingResponse {
@@ -63,6 +71,14 @@ class BookingService {
       charityPercent: request.charityPercent || 0,
       preferredVehicleType: request.preferredVehicleType,
       bookingType: request.bookingType,
+      dial2Collection: request.dial2Collection,
+      securityRequirements: request.securityRequirements,
+      idRequired: request.idRequired,
+      loadingBayLocation: request.loadingBayLocation,
+      vehicleHeightRestrictions: request.vehicleHeightRestrictions,
+      doorLiftSize: request.doorLiftSize,
+      roadWorksPublicEvents: request.roadWorksPublicEvents,
+      manualHandlingRequirements: request.manualHandlingRequirements,
     };
 
     const response = await apiClient.post<BookingResponse>('/bookings', payload);
@@ -190,6 +206,22 @@ class BookingService {
       erpJobNumber,
       reason,
     });
+  }
+
+  async updateJourneyFields(
+    bookingId: string,
+    fields: {
+      dial2Collection?: string;
+      securityRequirements?: string;
+      idRequired?: string;
+      loadingBayLocation?: string;
+      vehicleHeightRestrictions?: string;
+      doorLiftSize?: string;
+      roadWorksPublicEvents?: string;
+      manualHandlingRequirements?: string;
+    }
+  ): Promise<Booking> {
+    return apiClient.patch<Booking>(`/bookings/${bookingId}/journey-fields`, fields);
   }
 }
 

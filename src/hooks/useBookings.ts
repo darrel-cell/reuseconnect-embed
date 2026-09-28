@@ -229,3 +229,31 @@ export function useUpdateErpJobNumber() {
   });
 }
 
+export function useUpdateBookingJourneyFields() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      fields,
+    }: {
+      bookingId: string;
+      fields: {
+        dial2Collection?: string;
+        securityRequirements?: string;
+        idRequired?: string;
+        loadingBayLocation?: string;
+        vehicleHeightRestrictions?: string;
+        doorLiftSize?: string;
+        roadWorksPublicEvents?: string;
+        manualHandlingRequirements?: string;
+      };
+    }) => bookingService.updateJourneyFields(bookingId, fields),
+    onSuccess: async (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', variables.bookingId] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+}
+

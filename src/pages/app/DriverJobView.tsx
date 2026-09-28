@@ -16,6 +16,7 @@ import {
   Package,
   Plus,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,10 @@ import { useDriver } from "@/hooks/useDrivers";
 import { useAssetCategories } from "@/hooks/useAssets";
 import { canDriverEditJob, isDriverFinalStatus } from "@/utils/job-helpers";
 import { UK_TIME_ZONE } from '@/lib/datetime';
+import { COLLECTION_DETAIL_FIELDS, formatCollectionDetailsAudit } from '@/lib/collection-details';
+
+/** Journey / collection details stay editable by the driver until the assets are collected. */
+const JOURNEY_EDITABLE_STATUSES = ['routed', 'en-route', 'en_route', 'arrived'];
 
 type ExtraAssetLine = { key: string; categoryId: string; quantity: number };
 
@@ -85,6 +90,7 @@ const DriverJobView = () => {
   const [doorLiftSize, setDoorLiftSize] = useState("");
   const [roadWorksPublicEvents, setRoadWorksPublicEvents] = useState("");
   const [manualHandlingRequirements, setManualHandlingRequirements] = useState("");
+  const [isEditingOnDay, setIsEditingOnDay] = useState(false);
   /** Actual quantities collected (per job asset line) while status is arrived */
   const [assetQtyDraft, setAssetQtyDraft] = useState<Record<string, number>>({});
   /** Categories added on site that were not on the original booking */
@@ -171,12 +177,13 @@ const DriverJobView = () => {
       setSealNumbers([]);
       setNotes("");
       setNewSealNumber("");
+      setIsEditingOnDay(false);
     }
 
     // Only initialize journey fields when loading a NEW job (job ID changed)
     // This ensures fields are populated on initial load but preserved after save/refetch
     // When job is refetched after save, jobIdChanged will be false, so fields won't be reset
-    if (jobIdChanged && job.status === 'routed') {
+    if (jobIdChanged && JOURNEY_EDITABLE_STATUSES.includes(job.status)) {
       const initialValues = {
         dial2Collection: job.dial2Collection || "",
         securityRequirements: job.securityRequirements || "",
@@ -700,16 +707,42 @@ const DriverJobView = () => {
           </Card>
         )}
 
-        {/* Driver Journey Fields Form - Only show when status is routed */}
-        {job.status === 'routed' && (
+        {/* Journey / collection details: required before going en route, editable on the day until collected */}
+        {JOURNEY_EDITABLE_STATUSES.includes(job.status) && (
           <Card className="bg-primary/5 border-primary/20">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Journey Information</CardTitle>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Enter the details below, then tap En route when you depart for the collection site.
-              </p>
+            <CardHeader className="p-4 sm:p-6 flex flex-row items-start justify-between gap-2 space-y-0">
+              <div>
+                <CardTitle className="text-base sm:text-lg">
+                  {job.status === 'routed' ? 'Journey Information' : 'Collection Details'}
+                </CardTitle>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  {job.status === 'routed'
+                    ? 'Check the details below (pre-filled from the booking), then tap En route when you depart for the collection site.'
+                    : 'Update anything that has changed on the day.'}
+                </p>
+                {formatCollectionDetailsAudit(job) && (
+                  <p className="text-xs text-muted-foreground mt-1">{formatCollectionDetailsAudit(job)}</p>
+                )}
+              </div>
+              {job.status !== 'routed' && !isEditingOnDay && (
+                <Button variant="outline" size="sm" onClick={() => setIsEditingOnDay(true)}>
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
+              {job.status !== 'routed' && !isEditingOnDay ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {COLLECTION_DETAIL_FIELDS.map((field) => (
+                    <div key={field.key}>
+                      <p className="text-xs text-muted-foreground">{field.label}</p>
+                      <p className="text-sm font-medium">{job[field.key] || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+              <>
               <div className="space-y-1.5 sm:space-y-2">
                 <Label htmlFor="dial2Collection" className="text-sm sm:text-base">
                   DIAL 2 Collection <span className="text-destructive">*</span>
@@ -822,6 +855,69 @@ const DriverJobView = () => {
                 />
               </div>
               
+              {job.status !== 'routed' ? (
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    disabled={updateJourneyFields.isPending || !areJourneyFieldsValid || !hasJourneyFieldsChanged}
+                    onClick={async () => {
+                      if (!id) return;
+                      const savedFields = {
+                        dial2Collection: dial2Collection.trim(),
+                        securityRequirements: securityRequirements.trim(),
+                        idRequired: idRequired.trim(),
+                        loadingBayLocation: loadingBayLocation.trim(),
+                        vehicleHeightRestrictions: vehicleHeightRestrictions.trim(),
+                        doorLiftSize: doorLiftSize.trim(),
+                        roadWorksPublicEvents: roadWorksPublicEvents.trim(),
+                        manualHandlingRequirements: manualHandlingRequirements.trim(),
+                      };
+                      try {
+                        await updateJourneyFields.mutateAsync({ jobId: id, fields: savedFields });
+                        initialJourneyFieldsRef.current = { ...savedFields };
+                        toast.success("Collection details updated");
+                        setIsEditingOnDay(false);
+                        refetchJob();
+                      } catch (error) {
+                        toast.error("Could not save collection details", {
+                          description: error instanceof Error ? error.message : "Please try again.",
+                        });
+                      }
+                    }}
+                  >
+                    {updateJourneyFields.isPending ? (
+                      <>
+                        <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save changes
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={updateJourneyFields.isPending}
+                    onClick={() => {
+                      const initial = initialJourneyFieldsRef.current;
+                      setDial2Collection(initial.dial2Collection);
+                      setSecurityRequirements(initial.securityRequirements);
+                      setIdRequired(initial.idRequired);
+                      setLoadingBayLocation(initial.loadingBayLocation);
+                      setVehicleHeightRestrictions(initial.vehicleHeightRestrictions);
+                      setDoorLiftSize(initial.doorLiftSize);
+                      setRoadWorksPublicEvents(initial.roadWorksPublicEvents);
+                      setManualHandlingRequirements(initial.manualHandlingRequirements);
+                      setIsEditingOnDay(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+              <>
               <Button
                 onClick={async () => {
                   if (!id) return;
@@ -901,6 +997,10 @@ const DriverJobView = () => {
                 <p className="text-xs text-muted-foreground text-center px-2">
                   Fill in all required fields before going en route.
                 </p>
+              )}
+              </>
+              )}
+              </>
               )}
             </CardContent>
           </Card>

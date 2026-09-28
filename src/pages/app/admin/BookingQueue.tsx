@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Search, Calendar, MapPin, Package, ArrowRight, Loader2, Truck, Route, Fuel, User, UserPlus, UserCog, PackageSearch, Pencil, MoreHorizontal } from "lucide-react";
+import { bookingClientContact, bookingCreatorBadge, bookingTitle } from "@/lib/booking-display";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -417,11 +418,7 @@ const BookingQueue = () => {
                     const statusColor = getStatusColor(booking.status);
                     const statusLabel = getStatusLabelExtended(booking.status, booking.bookingType);
                     const actionBtnClass = viewMode === "card" ? "w-full mt-2" : undefined;
-                    const canEditScheduledDate =
-                      booking.status === "created" ||
-                      booking.status === "scheduled" ||
-                      booking.status === "collection_scheduled" ||
-                      booking.status === "courier_booked";
+                    const canEditScheduledDate = booking.status !== "cancelled";
                     const canReassignDriver =
                       booking.status === "scheduled" &&
                       !!booking.jobId &&
@@ -645,7 +642,7 @@ const BookingQueue = () => {
                               <div className="min-w-0 flex-1 space-y-1">
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                                   <p className="truncate text-sm font-semibold text-foreground">
-                                    {booking.organisationName || booking.clientName}
+                                    {bookingTitle(booking)}
                                   </p>
                                   <BookingTypeBadge
                                     bookingType={booking.bookingType}
@@ -657,6 +654,25 @@ const BookingQueue = () => {
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                   <span className="font-mono shrink-0">{booking.bookingNumber}</span>
+                                  {(() => {
+                                    const contact = bookingClientContact(booking);
+                                    const creatorBadge = bookingCreatorBadge(booking);
+                                    return (
+                                      <span className="flex min-w-0 items-center gap-1 truncate">
+                                        <User className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="truncate">
+                                          {contact.name}
+                                          {contact.email ? ` · ${contact.email}` : ''}
+                                          {contact.phone ? ` · ${contact.phone}` : ''}
+                                        </span>
+                                        {creatorBadge && (
+                                          <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0">
+                                            {creatorBadge}
+                                          </Badge>
+                                        )}
+                                      </span>
+                                    );
+                                  })()}
                                   <span className="flex min-w-0 items-center gap-1 truncate">
                                     <MapPin className="h-3.5 w-3.5 shrink-0" />
                                     <span className="truncate">
@@ -691,7 +707,7 @@ const BookingQueue = () => {
                           <CardHeader className="pb-3">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
-                                <CardTitle className="text-base mb-1">{booking.organisationName || booking.clientName}</CardTitle>
+                                <CardTitle className="text-base mb-1">{bookingTitle(booking)}</CardTitle>
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <p className="text-xs font-mono text-muted-foreground">{booking.bookingNumber}</p>
                                   <BookingTypeBadge
@@ -706,12 +722,29 @@ const BookingQueue = () => {
                             </div>
                           </CardHeader>
                           <CardContent className="space-y-3">
-                            {booking.createdByName && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <User className="h-4 w-4" />
-                                <span className="truncate">{booking.createdByName}</span>
-                              </div>
-                            )}
+                            {(() => {
+                              const contact = bookingClientContact(booking);
+                              const creatorBadge = bookingCreatorBadge(booking);
+                              return (
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <User className="h-4 w-4 shrink-0" />
+                                    <span className="truncate">{contact.name}</span>
+                                    {creatorBadge && (
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                                        {creatorBadge}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {(contact.email || contact.phone) && (
+                                    <div className="pl-6 text-xs text-muted-foreground space-y-0.5">
+                                      {contact.email && <p className="truncate">{contact.email}</p>}
+                                      {contact.phone && <p>{contact.phone}</p>}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             {booking.jmlSubType === 'mover' && booking.currentAddress ? (
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -998,7 +1031,8 @@ const BookingQueue = () => {
           <DialogHeader>
             <DialogTitle>Change Scheduled Date</DialogTitle>
             <DialogDescription>
-              Update the scheduled date for this booking. The client will receive a schedule change email.
+              Update the scheduled date for this booking at any status (except cancelled).
+              The client will receive a schedule-change email (collection update before collection; records correction after).
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
