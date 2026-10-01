@@ -65,6 +65,8 @@ export interface Booking {
   organisationName?: string;
   clientEmail?: string;
   clientPhone?: string;
+  companyAddress?: string;
+  companyWebsite?: string;
   resellerId?: string;
   resellerName?: string;
   siteName: string;

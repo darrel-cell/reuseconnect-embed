@@ -44,7 +44,7 @@ import { getUnderlyingAssetCategoryNameForJml } from "@/lib/jml-assets";
 import type { AssetCategory } from "@/types/jobs";
 import { UK_TIME_ZONE } from '@/lib/datetime';
 import { isAdminLikeRole } from '@/lib/roles';
-import { bookingTitle, isPartnerBooking } from "@/lib/booking-display";
+import { bookingTitle, isPartnerBooking, websiteHref } from "@/lib/booking-display";
 import {
   COLLECTION_DETAIL_FIELDS,
   collectionDetailsFromBooking,
@@ -820,6 +820,33 @@ const BookingDetail = () => {
                 </div>
               )}
 
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-secondary">
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Company Address</p>
+                    <p className="font-medium break-words">{booking.companyAddress || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Company Website</p>
+                    {booking.companyWebsite ? (
+                      <a
+                        href={websiteHref(booking.companyWebsite)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-primary hover:underline break-all"
+                      >
+                        {booking.companyWebsite}
+                      </a>
+                    ) : (
+                      <p className="font-medium">—</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* JML Employee Details (match style of site details for ITAD) */}
               {booking.bookingType === 'jml' && booking.employeeName && (
                 <div className="flex items-start gap-3">
@@ -851,11 +878,11 @@ const BookingDetail = () => {
                 <>
                   {/* Current Address (From) */}
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div className="flex-1">
+                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">From (Collection)</p>
-                      <p className="font-medium">{booking.currentSiteName || 'Current Address'}</p>
-                      <p className="text-sm text-muted-foreground">{booking.currentAddress}</p>
+                      <p className="font-medium break-words">{booking.currentSiteName || 'Current Address'}</p>
+                      <p className="text-sm text-muted-foreground break-words">{booking.currentAddress}</p>
                       {booking.currentPostcode && (
                         <p className="text-xs text-muted-foreground mt-0.5">{booking.currentPostcode}</p>
                       )}
@@ -863,20 +890,20 @@ const BookingDetail = () => {
                   </div>
                   {/* New Address (To) */}
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-primary mt-0.5" />
-                    <div className="flex-1">
+                    <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">To (Delivery)</p>
-                      <p className="font-medium">{booking.siteName}</p>
-                      <p className="text-sm text-muted-foreground">{booking.siteAddress}</p>
+                      <p className="font-medium break-words">{booking.siteName}</p>
+                      <p className="text-sm text-muted-foreground break-words">{booking.siteAddress}</p>
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">{booking.siteName}</p>
-                    <p className="text-sm text-muted-foreground">{booking.siteAddress}</p>
+                  <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-medium break-words">{booking.siteName}</p>
+                    <p className="text-sm text-muted-foreground break-words">{booking.siteAddress}</p>
                   </div>
                 </div>
               )}

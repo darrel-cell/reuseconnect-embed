@@ -9,6 +9,7 @@ export interface OrganisationProfile {
   organisationName: string;
   registrationNumber: string;
   address: string;
+  website?: string | null;
   email: string;
   phone: string;
   createdAt: string;
@@ -26,6 +27,7 @@ export interface OrganisationProfileData {
   organisationName: string;
   registrationNumber: string;
   address: string;
+  website: string;
   email: string;
   phone: string;
 }

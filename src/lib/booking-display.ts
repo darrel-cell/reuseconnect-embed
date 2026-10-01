@@ -12,6 +12,11 @@ type BookingParty = {
   creatorRole?: string;
 };
 
+/** A stored website value as a clickable URL; profiles often omit the scheme. */
+export function websiteHref(website: string): string {
+  return /^https?:\/\//i.test(website) ? website : `https://${website}`;
+}
+
 export function isPartnerBooking(booking: BookingParty): boolean {
   return Boolean(booking.isPartnerBooking || booking.resellerId);
 }

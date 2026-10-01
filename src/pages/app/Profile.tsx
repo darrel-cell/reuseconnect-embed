@@ -21,6 +21,7 @@ const Profile = () => {
     organisationName: "",
     registrationNumber: "",
     address: "",
+    website: "",
   });
   const [clientInitialFormData, setClientInitialFormData] = useState(clientFormData);
 
@@ -33,6 +34,7 @@ const Profile = () => {
         organisationName: clientProfile.organisationName || "",
         registrationNumber: clientProfile.registrationNumber || "",
         address: clientProfile.address || "",
+        website: clientProfile.website || "",
       };
       setClientFormData(next);
       setClientInitialFormData(next);
@@ -44,6 +46,7 @@ const Profile = () => {
         organisationName: user.organisationName || "",
         registrationNumber: "",
         address: "",
+        website: "",
       };
       setClientFormData(next);
       setClientInitialFormData(next);
@@ -56,7 +59,8 @@ const Profile = () => {
     clientFormData.phone !== clientInitialFormData.phone ||
     clientFormData.organisationName !== clientInitialFormData.organisationName ||
     clientFormData.registrationNumber !== clientInitialFormData.registrationNumber ||
-    clientFormData.address !== clientInitialFormData.address;
+    clientFormData.address !== clientInitialFormData.address ||
+    clientFormData.website !== clientInitialFormData.website;
 
   const handleSave = () => {
     if (!clientFormData.name.trim() || !clientFormData.email.trim() || !clientFormData.phone.trim()) {
@@ -76,6 +80,7 @@ const Profile = () => {
         organisationName: clientFormData.organisationName.trim(),
         registrationNumber: clientFormData.registrationNumber.trim(),
         address: clientFormData.address.trim(),
+        website: clientFormData.website.trim(),
       },
       {
         onSuccess: async () => {
@@ -176,11 +181,22 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
-                  <Label htmlFor="address">Registered Address</Label>
+                  <Label htmlFor="address">Company Address</Label>
                   <Input
                     id="address"
                     value={clientFormData.address}
                     onChange={(e) => setClientFormData((prev) => ({ ...prev, address: e.target.value }))}
+                  />
+                </div>
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor="website">Company Website</Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    placeholder="https://www.example.com"
+                    value={clientFormData.website}
+                    onChange={(e) => setClientFormData((prev) => ({ ...prev, website: e.target.value }))}
+                    required
                   />
                 </div>
               </div>

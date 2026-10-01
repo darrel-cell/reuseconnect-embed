@@ -47,9 +47,9 @@ class ClientsService {
     }
   }
 
-  async getClientProfile(): Promise<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; hasProfile: boolean } | null> {
+  async getClientProfile(): Promise<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; website: string; hasProfile: boolean } | null> {
     try {
-      const response = await apiClient.get<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; hasProfile: boolean }>('/clients/profile/me');
+      const response = await apiClient.get<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; website: string; hasProfile: boolean }>('/clients/profile/me');
       return response;
     } catch (error) {
       // ApiError carries `statusCode`, not `status`. Reading the wrong property
@@ -62,8 +62,8 @@ class ClientsService {
     }
   }
 
-  async updateClientProfile(data: { name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string }): Promise<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; hasProfile: boolean }> {
-    const response = await apiClient.patch<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; hasProfile: boolean }>('/clients/profile/me', data);
+  async updateClientProfile(data: { name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; website: string }): Promise<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; website: string; hasProfile: boolean }> {
+    const response = await apiClient.patch<{ id: string; name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; website: string; hasProfile: boolean }>('/clients/profile/me', data);
     return response;
   }
 

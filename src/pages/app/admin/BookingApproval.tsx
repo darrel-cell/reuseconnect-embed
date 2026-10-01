@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { bookingClientContact, bookingCreatorBadge, bookingTitle } from "@/lib/booking-display";
+import { bookingClientContact, bookingCreatorBadge, bookingTitle, websiteHref } from "@/lib/booking-display";
 import { CollectionDetailsEditDialog } from "@/components/booking/CollectionDetailsEditDialog";
 import {
   COLLECTION_DETAIL_FIELDS,
@@ -611,6 +611,24 @@ const BookingApproval = () => {
                 <DetailField label="Booked By" value={bookingCreatorBadge(booking) || 'Client'} />
                 <DetailField label="Email" value={contact.email && <span className="break-all">{contact.email}</span>} />
                 <DetailField label="Phone" value={contact.phone} />
+                <div className="col-span-full grid gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+                  <DetailField label="Company Address" value={booking.companyAddress} />
+                  <DetailField
+                    label="Company Website"
+                    value={
+                      booking.companyWebsite && (
+                        <a
+                          href={websiteHref(booking.companyWebsite)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline break-all"
+                        >
+                          {booking.companyWebsite}
+                        </a>
+                      )
+                    }
+                  />
+                </div>
               </DetailGroup>
             );
           })()}

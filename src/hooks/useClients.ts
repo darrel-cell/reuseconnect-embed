@@ -58,7 +58,7 @@ export function useUpdateClientProfile() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: (data: { name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string }) => clientsService.updateClientProfile(data),
+    mutationFn: (data: { name: string; email: string; phone: string; organisationName: string; registrationNumber: string; address: string; website: string }) => clientsService.updateClientProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clientProfile', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
