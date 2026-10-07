@@ -37,6 +37,9 @@ import { MapPicker } from "@/components/booking/MapPicker";
 import { AddressAutocomplete } from "@/components/booking/AddressAutocomplete";
 import { co2eEquivalencies } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { isActiveCategory, isWeeeCategory } from "@/lib/asset-categories";
+import { AssetCategoryIcon } from "@/components/assets/AssetCategoryIcon";
+import { AssetSelectionPanel } from "@/components/booking/AssetSelectionPanel";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { useClients } from "@/hooks/useClients";
@@ -157,7 +160,7 @@ const Booking = () => {
   
   const { data: assetCategories = [], error: categoriesError, isLoading: isLoadingCategories } = useAssetCategories();
   const itadAssetCategories = useMemo(
-    () => assetCategories.filter((category) => !["accessory", "accessories"].includes(category.name.toLowerCase())),
+    () => assetCategories.filter(isActiveCategory),
     [assetCategories]
   );
   const displayedAssetCategories = useMemo(() => {
@@ -394,6 +397,23 @@ const Booking = () => {
         return [...prev, { categoryId, quantity: quantityToAdd }];
       }
       return prev;
+    });
+  };
+
+  const setAssetQuantity = (categoryId: string, rawVal: number) => {
+    const val = isCourierCollectionBooking
+      ? Math.max(0, Math.min(rawVal, FREE_COURIER_MAX_ITEMS))
+      : Math.max(0, rawVal);
+    setSelectedAssets((prev) => {
+      const filtered = prev.filter((a) => a.categoryId !== categoryId);
+      const otherSelectedTotal = filtered.reduce((sum, a) => sum + a.quantity, 0);
+      const cappedVal = isCourierCollectionBooking
+        ? Math.max(0, Math.min(val, FREE_COURIER_MAX_ITEMS - otherSelectedTotal))
+        : val;
+      if (cappedVal > 0) {
+        return [...filtered, { categoryId, quantity: cappedVal }];
+      }
+      return filtered;
     });
   };
 
@@ -1169,8 +1189,13 @@ const Booking = () => {
             exit={{ opacity: 0, x: -20 }}
           >
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle>Select Assets for Collection</CardTitle>
+                {totalAssets > 0 && (
+                  <span className="text-sm font-medium text-primary tabular-nums">
+                    {totalAssets} item{totalAssets === 1 ? "" : "s"} selected
+                  </span>
+                )}
               </CardHeader>
               <CardContent>
                 {isCourierCollectionBooking && (
@@ -1181,82 +1206,13 @@ const Booking = () => {
                     </AlertDescription>
                   </Alert>
                 )}
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {displayedAssetCategories.map((category) => {
-                    const qty = getAssetQuantity(category.id);
-                    const isSelected = qty > 0;
-                    const remainingCourierAllowance = Math.max(FREE_COURIER_MAX_ITEMS - totalAssets, 0);
-                    const canIncreaseForCourier = !isCourierCollectionBooking || remainingCourierAllowance > 0;
-                    return (
-                      <div
-                        key={category.id}
-                        className={cn(
-                          "p-4 rounded-xl border-2 transition-all",
-                          isSelected
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        )}
-                      >
-                        <div className="text-center mb-3">
-                          <span className="text-3xl">{category.icon}</span>
-                          <p className="font-medium mt-1">{category.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {["weee waste", "mixed weee"].includes(category.name.toLowerCase()) ? (
-                              <>~{category.co2ePerUnit}kg CO₂e/t waste</>
-                            ) : (
-                              <>~{category.co2ePerUnit}kg CO₂e/unit</>
-                            )}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateAssetQuantity(category.id, -5)}
-                            disabled={qty === 0}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={qty}
-                            onChange={(e) => {
-                              const rawVal = parseInt(e.target.value) || 0;
-                              const val = isCourierCollectionBooking
-                                ? Math.max(0, Math.min(rawVal, FREE_COURIER_MAX_ITEMS))
-                                : Math.max(0, rawVal);
-                              setSelectedAssets((prev) => {
-                                const filtered = prev.filter(
-                                  (a) => a.categoryId !== category.id
-                                );
-                                const otherSelectedTotal = filtered.reduce((sum, a) => sum + a.quantity, 0);
-                                const cappedVal = isCourierCollectionBooking
-                                  ? Math.max(0, Math.min(val, FREE_COURIER_MAX_ITEMS - otherSelectedTotal))
-                                  : val;
-                                if (cappedVal > 0) {
-                                  return [...filtered, { categoryId: category.id, quantity: cappedVal }];
-                                }
-                                return filtered;
-                              });
-                            }}
-                            className="w-20 text-center h-8"
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateAssetQuantity(category.id, 5)}
-                            disabled={!canIncreaseForCourier}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <AssetSelectionPanel
+                  categories={displayedAssetCategories}
+                  getQuantity={getAssetQuantity}
+                  onStep={updateAssetQuantity}
+                  onSetQuantity={setAssetQuantity}
+                  canIncrease={!isCourierCollectionBooking || totalAssets < FREE_COURIER_MAX_ITEMS}
+                />
 
                 {/* CO2e Preview */}
                 {totalAssets > 0 && (
@@ -1517,10 +1473,13 @@ const Booking = () => {
                   <div className="pt-3 border-t">
                     {selectedAssets.map((asset) => {
                       const cat = assetCategories.find((c) => c.id === asset.categoryId);
-                      const isWeee = ["weee waste", "mixed weee"].includes(cat?.name?.toLowerCase() || "");
+                      const isWeee = isWeeeCategory(cat?.name);
                       return (
                         <div key={asset.categoryId} className="flex justify-between text-sm py-1">
-                          <span className="text-muted-foreground">{cat?.icon} {cat?.name}</span>
+                          <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                            <AssetCategoryIcon name={cat?.name} />
+                            {cat?.name}
+                          </span>
                           <span className="font-semibold text-foreground">
                             {asset.quantity}
                             {isWeee ? "t" : ""}

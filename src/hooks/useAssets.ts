@@ -7,9 +7,11 @@ export function useAssetCategories() {
   return useQuery({
     queryKey: ['assetCategories'],
     queryFn: () => assetsService.getAssetCategories(),
-    // Categories can be updated by backend scripts; refresh when screens remount.
+    // Categories can be updated by backend scripts; refresh when screens remount
+    // or the tab regains focus.
     staleTime: 0,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
   });
 }
 

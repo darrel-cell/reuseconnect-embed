@@ -12,6 +12,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useInventoryPage, useUploadInventory, useSyncInventory } from "@/hooks/useInventory";
 import { ListPagination } from "@/components/common/ListPagination";
 import { useAssetCategories } from "@/hooks/useAssets";
+import { isActiveCategory } from "@/lib/asset-categories";
+import { AssetCategoryIcon } from "@/components/assets/AssetCategoryIcon";
 import { useClients } from "@/hooks/useClients";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
@@ -49,7 +51,7 @@ const Inventory = () => {
   const requiresDeviceType = (name: string) =>
     ['Laptop', 'Desktop'].includes(name) || ['laptop', 'desktop'].includes(name?.toLowerCase());
   const requiresImei = (name: string) =>
-    ['Smart Phones', 'Tablets'].includes(name) || ['mobile', 'tablet'].includes(name?.toLowerCase());
+    ['Smart Phone', 'Smart Phones', 'Tablet', 'Tablets'].includes(name) || ['mobile', 'tablet'].includes(name?.toLowerCase());
   
   const [searchTerm, setSearchTerm] = useState("");
   const [deviceTypeFilter, setDeviceTypeFilter] = useState<string>("all");
@@ -483,9 +485,12 @@ const Inventory = () => {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {assetCategories.map((cat) => (
+                        {assetCategories.filter(isActiveCategory).map((cat) => (
                           <SelectItem key={cat.id} value={cat.name}>
-                            {cat.icon ? `${cat.icon} ` : ""}{cat.name}
+                            <span className="flex items-center gap-2">
+                              <AssetCategoryIcon name={cat.name} className="text-muted-foreground" />
+                              {cat.name}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>

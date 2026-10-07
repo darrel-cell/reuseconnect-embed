@@ -16,10 +16,10 @@ const FALLBACK_ICONS: Record<JmlAllowedCategoryName, string> = {
 
 export type JmlDeviceType = "Windows" | "Apple" | "Android";
 
-export function getUnderlyingAssetCategoryNameForJml(displayName: string): "Laptop" | "Smart Phones" | null {
+export function getUnderlyingAssetCategoryNameForJml(displayName: string): "Laptop" | "Smart Phone" | null {
   const c = displayName.trim().toLowerCase();
   if (c === "laptop" || c === "desktop") return "Laptop";
-  if (c === "phone" || c === "smart phones" || c === "smart phone") return "Smart Phones";
+  if (c === "phone" || c === "smart phones" || c === "smart phone") return "Smart Phone";
   return null; // Accessory (and anything else)
 }
 

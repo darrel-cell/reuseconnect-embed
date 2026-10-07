@@ -26,6 +26,7 @@ import { useSites, useCreateSite } from "@/hooks/useSites";
 import { geocodeAddressWithDetails } from "@/lib/calculations";
 import { validateEuropeanPostcode } from "@/lib/european-validation";
 import { cn } from "@/lib/utils";
+import { AssetCategoryIcon } from "@/components/assets/AssetCategoryIcon";
 import { useCO2Calculation } from "@/hooks/useCO2";
 import { useBuybackCalculation } from "@/hooks/useBuyback";
 import { co2eEquivalencies } from "@/lib/constants";
@@ -1349,8 +1350,9 @@ const JMLLeaver = () => {
                         : `${device.make} • ${device.model}${typeLabel}`;
                       return (
                         <div key={index} className="flex justify-between text-xs sm:text-sm py-1">
-                          <span className="text-muted-foreground">
-                            {category?.icon} {device.category} – {details}
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <AssetCategoryIcon name={category?.name ?? device.category} className="shrink-0" />
+                            {device.category} – {details}
                           </span>
                           <span className="font-semibold text-foreground">×{device.quantity}</span>
                         </div>

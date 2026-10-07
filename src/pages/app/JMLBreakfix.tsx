@@ -27,6 +27,7 @@ import { geocodeAddressWithDetails } from "@/lib/calculations";
 import { validateEuropeanPostcode } from "@/lib/european-validation";
 import { MapPicker } from "@/components/booking/MapPicker";
 import { cn } from "@/lib/utils";
+import { AssetCategoryIcon } from "@/components/assets/AssetCategoryIcon";
 import { filterJmlAssetCategories, getDeviceTypeOptionsForJmlCategory, getUnderlyingAssetCategoryNameForJml, inferDeviceTypeFromJmlCategory, isAccessoriesCategory, shouldShowDeviceTypeForJmlCategory, type JmlDeviceType } from "@/lib/jml-assets";
 import { co2eEquivalencies } from "@/lib/constants";
 import { log } from '@/lib/log';
@@ -1565,8 +1566,9 @@ const JMLBreakfix = () => {
                               ].filter(Boolean).join(' • ');
                           return (
                             <div key={index} className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                {category?.icon} {device.category} ({deviceInfo})
+                              <span className="flex items-center gap-1.5 text-muted-foreground">
+                                <AssetCategoryIcon name={category?.name ?? device.category} className="shrink-0" />
+                                {device.category} ({deviceInfo})
                               </span>
                               <span className="font-semibold text-foreground">{device.quantity}</span>
                             </div>
@@ -1589,8 +1591,9 @@ const JMLBreakfix = () => {
                               ].filter(Boolean).join(' • ');
                           return (
                             <div key={index} className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                {category?.icon} {device.category} ({deviceInfo})
+                              <span className="flex items-center gap-1.5 text-muted-foreground">
+                                <AssetCategoryIcon name={category?.name ?? device.category} className="shrink-0" />
+                                {device.category} ({deviceInfo})
                               </span>
                               <span className="font-semibold text-foreground">{device.quantity}</span>
                             </div>

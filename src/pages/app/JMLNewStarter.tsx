@@ -26,6 +26,7 @@ import { useSites, useCreateSite } from "@/hooks/useSites";
 import { geocodeAddressWithDetails } from "@/lib/calculations";
 import { validateEuropeanPostcode } from "@/lib/european-validation";
 import { cn } from "@/lib/utils";
+import { AssetCategoryIcon } from "@/components/assets/AssetCategoryIcon";
 import { filterJmlAssetCategories, getDeviceTypeOptionsForJmlCategory, getUnderlyingAssetCategoryNameForJml, inferDeviceTypeFromJmlCategory, isAccessoriesCategory, shouldShowDeviceTypeForJmlCategory, type JmlDeviceType } from "@/lib/jml-assets";
 import { useCO2Calculation } from "@/hooks/useCO2";
 import { co2eEquivalencies } from "@/lib/constants";
@@ -1292,8 +1293,9 @@ const JMLNewStarter = () => {
                           ].filter(Boolean).join(' • ');
                       return (
                         <div key={index} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            {category?.icon} {device.category} ({deviceInfo})
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <AssetCategoryIcon name={category?.name ?? device.category} className="shrink-0" />
+                            {device.category} ({deviceInfo})
                           </span>
                           <span className="font-semibold text-foreground">{device.quantity}</span>
                         </div>

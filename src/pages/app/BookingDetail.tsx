@@ -41,6 +41,8 @@ import { useMemo, useEffect } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUnderlyingAssetCategoryNameForJml } from "@/lib/jml-assets";
+import { isActiveCategory } from "@/lib/asset-categories";
+import { AssetCategoryIcon } from "@/components/assets/AssetCategoryIcon";
 import type { AssetCategory } from "@/types/jobs";
 import { UK_TIME_ZONE } from '@/lib/datetime';
 import { isAdminLikeRole } from '@/lib/roles';
@@ -411,7 +413,7 @@ const BookingDetail = () => {
     newAssetLines.forEach((line) => {
       if (line.categoryId) taken.add(line.categoryId);
     });
-    return assetCategories.filter((category) => !taken.has(category.id));
+    return assetCategories.filter((category) => isActiveCategory(category) && !taken.has(category.id));
   }, [assetCategories, bookedCategoryIds, newAssetLines]);
 
   const getSelectableCategoriesForRow = (rowKey: string, currentCategoryId: string): AssetCategory[] => {
@@ -422,7 +424,8 @@ const BookingDetail = () => {
       }
     });
     return assetCategories.filter(
-      (category) => category.id === currentCategoryId || !taken.has(category.id)
+      (category) =>
+        category.id === currentCategoryId || (isActiveCategory(category) && !taken.has(category.id))
     );
   };
 
@@ -527,6 +530,16 @@ const BookingDetail = () => {
         0
       ) + newAssetLines.reduce((sum, line) => sum + (line.quantity || 0), 0)
     : displayAssets.reduce((sum, a) => sum + a.quantity, 0);
+  const retiredCategoryIds = new Set(
+    assetCategories.filter((c) => !isActiveCategory(c)).map((c) => String(c.id))
+  );
+  const isRetiredAssetLine = (asset: { categoryId?: string | number | null }) =>
+    asset.categoryId != null && retiredCategoryIds.has(String(asset.categoryId));
+  const retiredLineNames = Array.from(
+    new Set((booking.assets || []).filter(isRetiredAssetLine).map((a) => a.categoryName))
+  );
+  const needsRecategorising =
+    retiredLineNames.length > 0 && !["completed", "cancelled", "inventory"].includes(booking.status);
   
   const roundTripDistanceKm = booking.roundTripDistanceKm || 0;
   const roundTripDistanceMiles = booking.roundTripDistanceMiles || 0;
@@ -1163,6 +1176,14 @@ const BookingDetail = () => {
               <CardTitle>{isBreakfixBooking ? 'Broken Devices (Assets)' : 'Assets'}</CardTitle>
             </CardHeader>
             <CardContent>
+              {user?.isSuperAdmin && needsRecategorising && (
+                <Alert className="mb-3 border-amber-500/50 bg-amber-500/10">
+                  <AlertDescription>
+                    This booking uses retired categories ({retiredLineNames.join(", ")}). Use Edit Assets to
+                    remove those lines and add the correct new categories.
+                  </AlertDescription>
+                </Alert>
+              )}
               {user?.isSuperAdmin && (
                 <div className="flex flex-wrap gap-2 mb-3">
                   <Button
@@ -1205,8 +1226,13 @@ const BookingDetail = () => {
                   <div key={asset.id || `display-${index}`} className="p-3 rounded-lg bg-muted/50 space-y-1">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <AssetCategoryIcon name={asset.categoryName} className="text-muted-foreground shrink-0" />
                         <span className="font-medium truncate">{asset.categoryName}</span>
+                        {user?.isSuperAdmin && needsRecategorising && isRetiredAssetLine(asset) && (
+                          <Badge variant="outline" className="border-amber-500 text-amber-600 shrink-0">
+                            Retired
+                          </Badge>
+                        )}
                       </div>
                       {isEditingAssets && user?.isSuperAdmin && asset.id ? (
                         <div className="flex items-center gap-1 shrink-0">

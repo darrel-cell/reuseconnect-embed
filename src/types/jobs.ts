@@ -120,6 +120,7 @@ export interface AssetCategory {
   co2ePerUnit: number; // kg CO2e saved per unit reused
   avgWeight: number; // kg
   avgBuybackValue: number; // £
+  isActive?: boolean;
 }
 
 export interface DashboardStats {

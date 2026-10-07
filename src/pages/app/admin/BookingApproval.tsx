@@ -43,7 +43,7 @@ import { useQuery } from "@tanstack/react-query";
 import { inventoryService } from "@/services/inventory.service";
 import { getUnderlyingAssetCategoryNameForJml, isAccessoriesCategory } from "@/lib/jml-assets";
 
-/** Match JML device line category (e.g. "Phone") to client inventory row category (e.g. "Smart Phones"). */
+/** Match JML device line category (e.g. "Phone") to client inventory row category (e.g. "Smart Phone"). */
 function jmlInventoryCategoryMatchesDevice(deviceCategory: string, inventoryCategory: string): boolean {
   const a = (deviceCategory || "").trim().toLowerCase();
   const b = (inventoryCategory || "").trim().toLowerCase();

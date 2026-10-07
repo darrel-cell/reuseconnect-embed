@@ -65,6 +65,7 @@ import { useMemo } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
+import { AssetCategoryIcon } from "@/components/assets/AssetCategoryIcon";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { getAuthenticatedFileUrl } from "@/utils/file-url";
 import {
@@ -551,7 +552,12 @@ const JobDetail = () => {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl">{category?.icon || '📦'}</span>
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <AssetCategoryIcon
+                              name={category?.name || asset.categoryName || asset.category}
+                              className="h-5 w-5 text-primary"
+                            />
+                          </span>
                           <div>
                             <p className="font-medium">{category?.name || asset.categoryName || asset.category}</p>
                             <p className="text-sm text-muted-foreground">

@@ -38,6 +38,16 @@ interface SelectedDevice {
 const isAccessoryCategory = (category: string) =>
   String(category || "").trim().toLowerCase().includes("accessor");
 
+// Inventory rows created before the category rename may still say "Smart Phones" / "Tablets".
+const normaliseInventoryCategory = (category: string) => {
+  const c = String(category || "").trim().toLowerCase();
+  if (c === "smart phones") return "smart phone";
+  if (c === "tablets") return "tablet";
+  return c;
+};
+const sameInventoryCategory = (a: string, b: string) =>
+  normaliseInventoryCategory(a) === normaliseInventoryCategory(b);
+
 const DeviceAllocation = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -107,7 +117,7 @@ const DeviceAllocation = () => {
                 const raw = (d.category || "").toString().trim();
                 const lower = raw.toLowerCase();
                 if (lower.endsWith("laptop")) return "laptop";
-                if (lower.endsWith("phone")) return "smart phones";
+                if (lower.endsWith("phone")) return "smart phone";
                 return lower;
               })(),
               make: d.make || '',
@@ -147,7 +157,7 @@ const DeviceAllocation = () => {
               const lower = raw.toLowerCase();
               // Map JML display categories to underlying inventory categories
               if (lower.endsWith("laptop")) return "laptop";
-              if (lower.endsWith("phone")) return "smart phones";
+              if (lower.endsWith("phone")) return "smart phone";
               return lower;
             })(),
             make: d.make || '',
@@ -182,7 +192,7 @@ const DeviceAllocation = () => {
               const raw = (d.category || "").toString().trim();
               const lower = raw.toLowerCase();
               if (lower.endsWith("laptop")) return "laptop";
-              if (lower.endsWith("phone")) return "smart phones";
+              if (lower.endsWith("phone")) return "smart phone";
               return lower;
             })(),
             make: d.make || '',
@@ -230,7 +240,7 @@ const DeviceAllocation = () => {
         return !x || ["unknown", "unk", "-", "na", "n/a"].includes(x);
       };
 
-      const matchesCategory = item.category.toLowerCase() === requirement.category.toLowerCase();
+      const matchesCategory = sameInventoryCategory(item.category, requirement.category);
       const matchesMake = isPlaceholder(reqMake) ? true : item.make.toLowerCase() === reqMake.toLowerCase();
       const matchesModel = isPlaceholder(reqModel) ? true : item.model.toLowerCase() === reqModel.toLowerCase();
       const categoryNeedsDeviceType =
@@ -424,7 +434,7 @@ const DeviceAllocation = () => {
         requirement.category === "smart phone";
 
       const available = allInventory.filter((item) => {
-        const matchesCategory = item.category.toLowerCase() === requirement.category.toLowerCase();
+        const matchesCategory = sameInventoryCategory(item.category, requirement.category);
         const matchesMake = isPlaceholder(reqMake) ? true : item.make.toLowerCase() === reqMake.toLowerCase();
         const matchesModel = isPlaceholder(reqModel) ? true : item.model.toLowerCase() === reqModel.toLowerCase();
         const matchesDeviceType = categoryNeedsDeviceType

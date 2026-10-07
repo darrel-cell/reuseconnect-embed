@@ -34,6 +34,7 @@ import type { WorkflowStatus } from "@/types/jobs";
 import { useAuth } from "@/contexts/auth-context";
 import { useDriver } from "@/hooks/useDrivers";
 import { useAssetCategories } from "@/hooks/useAssets";
+import { isActiveCategory } from "@/lib/asset-categories";
 import { canDriverEditJob, isDriverFinalStatus } from "@/utils/job-helpers";
 import { UK_TIME_ZONE } from '@/lib/datetime';
 import { COLLECTION_DETAIL_FIELDS, formatCollectionDetailsAudit } from '@/lib/collection-details';
@@ -67,13 +68,7 @@ const DriverJobView = () => {
   const updateJourneyFields = useUpdateJobJourneyFields();
   const updateCollectedQuantities = useUpdateJobCollectedQuantities();
   const { data: assetCategories = [] } = useAssetCategories();
-  const itadAssetCategories = useMemo(
-    () =>
-      assetCategories.filter(
-        (category) => !["accessory", "accessories"].includes(category.name.toLowerCase())
-      ),
-    [assetCategories]
-  );
+  const itadAssetCategories = useMemo(() => assetCategories.filter(isActiveCategory), [assetCategories]);
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
