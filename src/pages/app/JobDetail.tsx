@@ -1306,8 +1306,10 @@ const JobDetail = () => {
                             try {
                               const safe = doc.name.replace(/[^\w\s.-]/g, "_").slice(0, 120);
                               await documentsService.downloadDocument(doc.id, safe);
-                            } catch {
-                              toast.error("Download failed");
+                            } catch (error) {
+                              toast.error("Download failed", {
+                                description: error instanceof Error ? error.message : "Please try again.",
+                              });
                             }
                           }}
                         >

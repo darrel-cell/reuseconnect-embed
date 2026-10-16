@@ -116,11 +116,16 @@ class DocumentsService {
     try {
       const url = `${API_BASE_URL}/documents/${documentId}/download`;
       
+      // The embed has no session cookie (the exchange returns the JWT in the body,
+      // and the app's SameSite=strict cookies are not sent inside a partner
+      // iframe), so this raw fetch must carry the same Bearer token as apiClient.
+      const authToken = apiClient.getAuthToken();
       const response = await fetch(url, {
         method: 'GET',
-        credentials: 'include', // Include httpOnly cookie (auth_token) automatically
+        credentials: 'include',
         headers: {
           ...apiTunnelHeaders(),
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         },
       });
 

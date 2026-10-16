@@ -211,8 +211,10 @@ const Documents = () => {
                 onClick={async () => {
                   try {
                     await documentsService.downloadDocument(doc.id);
-                  } catch {
-                    toast.error("Download failed");
+                  } catch (error) {
+                    toast.error("Download failed", {
+                      description: error instanceof Error ? error.message : "Please try again.",
+                    });
                   }
                 }}
               >
