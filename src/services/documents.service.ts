@@ -2,6 +2,7 @@
 import { apiClient, type Paginated } from './api-client';
 import { API_BASE_URL, apiTunnelHeaders } from '@/lib/config';
 import { log } from '@/lib/log';
+import { getAuthenticatedFileUrl } from '@/utils/file-url';
 
 export interface Document {
   id: string;
@@ -112,62 +113,116 @@ class DocumentsService {
    * Download a document file with authentication
    */
   async downloadDocument(documentId: string, fileName?: string): Promise<void> {
-
     try {
-      const url = `${API_BASE_URL}/documents/${documentId}/download`;
-      
-      // The embed has no session cookie (the exchange returns the JWT in the body,
-      // and the app's SameSite=strict cookies are not sent inside a partner
-      // iframe), so this raw fetch must carry the same Bearer token as apiClient.
-      const authToken = apiClient.getAuthToken();
-      const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          ...apiTunnelHeaders(),
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-      });
-
-      if (!response.ok) {
-        // Try to parse error message from JSON response
-        let errorMessage = `Failed to download document: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch {
-          // If response is not JSON, use statusText
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Get the blob from the response
-      const blob = await response.blob();
-      
-      // Get filename from Content-Disposition header or use provided/default name
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let downloadFileName = fileName || `document-${documentId}.pdf`;
-      
-      if (contentDisposition) {
-        const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        if (fileNameMatch && fileNameMatch[1]) {
-          downloadFileName = fileNameMatch[1].replace(/['"]/g, '');
-        }
-      }
-
-      // Create a temporary URL and trigger download
-      const urlObject = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = urlObject;
-      link.download = downloadFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(urlObject);
+      await this.downloadWithAuth(
+        `${API_BASE_URL}/documents/${documentId}/download`,
+        fileName || `document-${documentId}.pdf`
+      );
     } catch (error) {
       log.error('Failed to download document:', error);
       throw error;
     }
+  }
+
+  /**
+   * Download a file the backend handed over as a URL (e.g. a job certificate's
+   * `downloadUrl`).
+   *
+   * A plain `<a href>` sends no credentials from the embed, so a URL served by
+   * our own API is fetched with the Bearer token instead. Anything on another
+   * origin (S3 presigned links, Blancco) is opened directly — the token must
+   * never be sent to a third party, and those links carry their own access.
+   */
+  async downloadFromUrl(rawUrl: string | null | undefined, fallbackFileName: string): Promise<void> {
+    const trimmed = rawUrl?.trim();
+    if (!trimmed || trimmed === '#') {
+      throw new Error('This file is not available yet');
+    }
+
+    let resolved: string;
+    if (/^(https?:|blob:|data:)/i.test(trimmed)) {
+      resolved = trimmed;
+    } else if (trimmed.startsWith('/api/')) {
+      resolved = `${API_BASE_URL.replace(/\/$/, '')}${trimmed.slice('/api'.length)}`;
+    } else {
+      // Relative storage paths live under /uploads on the API host.
+      resolved = getAuthenticatedFileUrl(trimmed);
+      if (resolved === '#') {
+        throw new Error('This file is not available yet');
+      }
+    }
+
+    try {
+      const target = new URL(resolved, window.location.href);
+      const apiOrigin = new URL(API_BASE_URL, window.location.href).origin;
+      if (/^https?:$/.test(target.protocol) && target.origin === apiOrigin) {
+        await this.downloadWithAuth(target.href, fallbackFileName);
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = target.href;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = fallbackFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      log.error('Failed to download file:', error);
+      throw error;
+    }
+  }
+
+  private async downloadWithAuth(url: string, fallbackFileName: string): Promise<void> {
+    // The embed has no session cookie (the exchange returns the JWT in the body,
+    // and the app's SameSite=strict cookies are not sent inside a partner
+    // iframe), so this raw fetch must carry the same Bearer token as apiClient.
+    const authToken = apiClient.getAuthToken();
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        ...apiTunnelHeaders(),
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      // Try to parse error message from JSON response
+      let errorMessage = `Failed to download document: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        // If response is not JSON, use statusText
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Get the blob from the response
+    const blob = await response.blob();
+
+    // Get filename from Content-Disposition header or use provided/default name
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let downloadFileName = fallbackFileName;
+
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (fileNameMatch && fileNameMatch[1]) {
+        downloadFileName = fileNameMatch[1].replace(/['"]/g, '');
+      }
+    }
+
+    // Create a temporary URL and trigger download
+    const urlObject = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = urlObject;
+    link.download = downloadFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(urlObject);
   }
 }
 

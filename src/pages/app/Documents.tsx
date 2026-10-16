@@ -221,10 +221,24 @@ const Documents = () => {
                 <Download className="h-4 w-4" />
               </Button>
             ) : (
-              <Button variant="outline" size="sm" className="shrink-0" asChild>
-                <a href={doc.downloadUrl} download>
-                  <Download className="h-4 w-4" />
-                </a>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={async () => {
+                  try {
+                    await documentsService.downloadFromUrl(
+                      doc.downloadUrl,
+                      `${doc.type}-${doc.jobNumber}.pdf`
+                    );
+                  } catch (error) {
+                    toast.error("Download failed", {
+                      description: error instanceof Error ? error.message : "Please try again.",
+                    });
+                  }
+                }}
+              >
+                <Download className="h-4 w-4" />
               </Button>
             )}
           </CardContent>

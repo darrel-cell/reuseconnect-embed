@@ -1335,14 +1335,23 @@ const JobDetail = () => {
                           key={index}
                           variant="outline"
                           className="w-full justify-between"
-                          asChild
+                          onClick={async () => {
+                            try {
+                              await documentsService.downloadFromUrl(
+                                cert.downloadUrl,
+                                `${cert.type}-${job.erpJobNumber || job.id}.pdf`
+                              );
+                            } catch (error) {
+                              toast.error("Download failed", {
+                                description: error instanceof Error ? error.message : "Please try again.",
+                              });
+                            }
+                          }}
                         >
-                          <a href={cert.downloadUrl} download>
-                            <span className="capitalize">
-                              {cert.type.replace(/-/g, " ")}
-                            </span>
-                            <Download className="h-4 w-4" />
-                          </a>
+                          <span className="capitalize">
+                            {cert.type.replace(/-/g, " ")}
+                          </span>
+                          <Download className="h-4 w-4" />
                         </Button>
                       ))}
                     </div>
