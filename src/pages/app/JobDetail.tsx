@@ -80,6 +80,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
+import { formatCollectionAddress } from "@/lib/collection-details";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsService, type CompletionDocumentType } from "@/services/documents.service";
 import { Input } from "@/components/ui/input";
@@ -117,7 +118,8 @@ const JobDetail = () => {
   const { user } = useAuth();
   const { data: job, isLoading, error } = useJob(id);
   const { data: assetCategories } = useAssetCategories();
-  const { data: drivers = [] } = useDrivers();
+  // Only admins can re-assign, and only they may list drivers.
+  const { data: drivers = [] } = useDrivers(isAdminLikeRole(user?.role));
   const reassignDriver = useReassignDriver();
   const updateJobBuyback = useUpdateJobBuyback();
   const updateCostOfServiceTotal = useUpdateCostOfServiceTotal();
@@ -409,7 +411,7 @@ const JobDetail = () => {
                       <div className="flex-1">
                         <p className="text-xs text-muted-foreground mb-1">To (Delivery)</p>
                         <p className="font-medium">{job.siteName}</p>
-                        <p className="text-sm text-muted-foreground">{job.siteAddress}</p>
+                        <p className="text-sm text-muted-foreground">{formatCollectionAddress(job.siteAddress, job.postcode)}</p>
                       </div>
                     </div>
                   </>
@@ -418,7 +420,21 @@ const JobDetail = () => {
                     <MapPin className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">{job.siteName}</p>
-                      <p className="text-sm text-muted-foreground">{job.siteAddress}</p>
+                      <p className="text-sm text-muted-foreground">{formatCollectionAddress(job.siteAddress, job.postcode)}</p>
+                    </div>
+                  </div>
+                )}
+                {job.jmlSubType !== 'mover' && (job.siteContactName || job.siteContactPhone) && (
+                  <div className="flex items-start gap-3">
+                    <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Site Contact</p>
+                      {job.siteContactName && <p className="font-medium">{job.siteContactName}</p>}
+                      {job.siteContactPhone && (
+                        <a href={`tel:${job.siteContactPhone}`} className="text-sm text-muted-foreground">
+                          {job.siteContactPhone}
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}
@@ -485,8 +501,8 @@ const JobDetail = () => {
                           Re-assign Driver
                         </Button>
                       )}
-                      {/* Only show Driver View button to driver role, and only if job is editable */}
-                      {user?.role === 'driver' && canDriverEditJob(job) && (
+                      {/* Driver View for drivers and Head of Operations (driver-equivalent), only if job is editable */}
+                      {(user?.role === 'driver' || user?.role === 'head_of_operation') && canDriverEditJob(job) && (
                         <Button variant="outline" size="sm" asChild>
                           <Link to={`/driver/jobs/${job.id}`} className="text-inherit no-underline">
                             <Smartphone className="h-4 w-4 mr-2" />

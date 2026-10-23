@@ -81,6 +81,20 @@ export function collectionDetailsFromBooking(booking: {
   };
 }
 
+/**
+ * Collection address with its postcode. The booking form stores the address as
+ * "street, city, county, country" (empty parts kept) and the postcode in its own
+ * column, so showing `siteAddress` alone dropped the postcode.
+ */
+export function formatCollectionAddress(address?: string | null, postcode?: string | null): string {
+  const parts = (address ?? '').split(',').map((p) => p.trim()).filter(Boolean);
+  const code = postcode?.trim();
+  if (code && !parts.some((p) => p.toUpperCase().includes(code.toUpperCase()))) {
+    parts.push(code);
+  }
+  return parts.join(', ');
+}
+
 export function hasAnyCollectionDetail(details: CollectionDetails): boolean {
   return COLLECTION_DETAIL_FIELDS.some((f) => details[f.key].trim() !== '');
 }

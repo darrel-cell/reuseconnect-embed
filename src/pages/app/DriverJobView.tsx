@@ -6,6 +6,7 @@ import {
   Calendar, 
   Truck, 
   Phone,
+  User,
   Camera,
   PenTool,
   Save,
@@ -37,7 +38,7 @@ import { useAssetCategories } from "@/hooks/useAssets";
 import { isActiveCategory } from "@/lib/asset-categories";
 import { canDriverEditJob, isDriverFinalStatus } from "@/utils/job-helpers";
 import { UK_TIME_ZONE } from '@/lib/datetime';
-import { COLLECTION_DETAIL_FIELDS, formatCollectionDetailsAudit } from '@/lib/collection-details';
+import { COLLECTION_DETAIL_FIELDS, formatCollectionAddress, formatCollectionDetailsAudit } from '@/lib/collection-details';
 
 /** Journey / collection details stay editable by the driver until the assets are collected. */
 const JOURNEY_EDITABLE_STATUSES = ['routed', 'en-route', 'en_route', 'arrived'];
@@ -638,9 +639,27 @@ const DriverJobView = () => {
               <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm sm:text-base font-medium break-words">{job.siteName}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground break-words">{job.siteAddress}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground break-words">
+                  {formatCollectionAddress(job.siteAddress, job.postcode)}
+                </p>
               </div>
             </div>
+            {job.jmlSubType !== 'mover' && (job.siteContactName || job.siteContactPhone) && (
+              <div className="flex items-start gap-2 sm:gap-3">
+                <User className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Site contact</p>
+                  {job.siteContactName && (
+                    <p className="text-sm sm:text-base font-medium break-words">{job.siteContactName}</p>
+                  )}
+                  {job.siteContactPhone && (
+                    <a href={`tel:${job.siteContactPhone}`} className="text-xs sm:text-sm text-primary break-all">
+                      {job.siteContactPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2 sm:gap-3">
               <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
               <p className="text-xs sm:text-sm break-words">

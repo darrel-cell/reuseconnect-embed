@@ -21,7 +21,7 @@ import {
 import { useBooking } from "@/hooks/useBookings";
 import { useDeleteBooking } from "@/hooks/useBookings";
 import { useUpdateBookingAssets } from "@/hooks/useBookings";
-import { useUpdateBookingJourneyFields } from "@/hooks/useBookings";
+import { useUpdateBookingJourneyFields, useUpdateBookingSiteContact } from "@/hooks/useBookings";
 import { useAssetCategories } from "@/hooks/useAssets";
 import { useJob } from "@/hooks/useJobs";
 import { useBookingDocuments } from "@/hooks/useBookingDocuments";
@@ -51,6 +51,7 @@ import {
   COLLECTION_DETAIL_FIELDS,
   collectionDetailsFromBooking,
   emptyCollectionDetails,
+  formatCollectionAddress,
   formatCollectionDetailsAudit,
   hasAnyCollectionDetail,
   type CollectionDetails,
@@ -197,6 +198,7 @@ const BookingDetail = () => {
   const deleteBooking = useDeleteBooking();
   const updateBookingAssets = useUpdateBookingAssets();
   const updateJourneyFields = useUpdateBookingJourneyFields();
+  const updateSiteContact = useUpdateBookingSiteContact();
   const { data: assetCategories = [] } = useAssetCategories();
   const [isEditingAssets, setIsEditingAssets] = useState(false);
   const [assetQuantities, setAssetQuantities] = useState<Record<string, number>>({});
@@ -207,6 +209,8 @@ const BookingDetail = () => {
   const [pendingReasonAction, setPendingReasonAction] = useState<null | "delete_booking" | "update_assets">(null);
   const [isEditingCollection, setIsEditingCollection] = useState(false);
   const [collectionDraft, setCollectionDraft] = useState<CollectionDetails>(emptyCollectionDetails());
+  const [isEditingContact, setIsEditingContact] = useState(false);
+  const [contactDraft, setContactDraft] = useState({ name: "", phone: "" });
   const canEditCollection = isAdminLikeRole(user?.role);
   const { data: relatedJob } = useJob(booking?.jobId || null);
   const { data: bookingDocuments = [], isLoading: loadingBookingDocuments } = useBookingDocuments(id || null);
@@ -219,7 +223,7 @@ const BookingDetail = () => {
 
   // Fetch driver details if booking has driverId but no relatedJob driver
   const { data: driverDetailsData } = useDriver(
-    booking?.driverId && !relatedJob?.driver ? booking.driverId : null
+    isAdminLikeRole(user?.role) && booking?.driverId && !relatedJob?.driver ? booking.driverId : null
   );
   
   // Transform driverDetailsData to match the Driver type expected by the component (from jobs.ts)
@@ -907,16 +911,116 @@ const BookingDetail = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-muted-foreground mb-1">To (Delivery)</p>
                       <p className="font-medium break-words">{booking.siteName}</p>
-                      <p className="text-sm text-muted-foreground break-words">{booking.siteAddress}</p>
+                      <p className="text-sm text-muted-foreground break-words">
+                        {formatCollectionAddress(booking.siteAddress, booking.postcode)}
+                      </p>
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
-                  <div className="min-w-0">
-                    <p className="font-medium break-words">{booking.siteName}</p>
-                    <p className="text-sm text-muted-foreground break-words">{booking.siteAddress}</p>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-secondary">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm text-muted-foreground">Collection Site Address</p>
+                        {canEditCollection && booking.jmlSubType !== 'mover' && !isEditingContact && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setContactDraft({ name: booking.siteContactName || "", phone: booking.siteContactPhone || "" });
+                              setIsEditingContact(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit site contact
+                          </Button>
+                        )}
+                      </div>
+                      <p className="font-medium break-words">{booking.siteName}</p>
+                      <p className="text-sm break-words">
+                        {formatCollectionAddress(booking.siteAddress, booking.postcode) || '—'}
+                      </p>
+                    </div>
+                    {booking.jmlSubType !== 'mover' && isEditingContact ? (
+                      <div className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="siteContactName" className="text-sm">Site Contact Name</Label>
+                            <Input
+                              id="siteContactName"
+                              placeholder="Site contact person"
+                              value={contactDraft.name}
+                              onChange={(e) => setContactDraft({ ...contactDraft, name: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="siteContactPhone" className="text-sm">Site Contact Phone</Label>
+                            <Input
+                              id="siteContactPhone"
+                              placeholder="+44 ..."
+                              value={contactDraft.phone}
+                              onChange={(e) => setContactDraft({ ...contactDraft, phone: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            disabled={updateSiteContact.isPending}
+                            onClick={async () => {
+                              if (!booking.id) return;
+                              try {
+                                await updateSiteContact.mutateAsync({
+                                  bookingId: booking.id,
+                                  contact: { siteContactName: contactDraft.name, siteContactPhone: contactDraft.phone },
+                                });
+                                toast.success("Site contact updated");
+                                setIsEditingContact(false);
+                              } catch (error) {
+                                toast.error("Failed to update site contact", {
+                                  description: error instanceof Error ? error.message : "Please try again.",
+                                });
+                              }
+                            }}
+                          >
+                            {updateSiteContact.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Saving…
+                              </>
+                            ) : (
+                              "Save"
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={updateSiteContact.isPending}
+                            onClick={() => setIsEditingContact(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : booking.jmlSubType !== 'mover' && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Site Contact</p>
+                        <p className="font-medium break-words">{booking.siteContactName || '—'}</p>
+                        {booking.siteContactPhone && (
+                          <a
+                            href={`tel:${booking.siteContactPhone}`}
+                            className="inline-flex items-center gap-1 text-sm text-primary break-all"
+                          >
+                            <Phone className="h-3 w-3" />
+                            {booking.siteContactPhone}
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1009,7 +1113,7 @@ const BookingDetail = () => {
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm font-medium text-muted-foreground">Driver Assignment</p>
                     {/* Only show Driver View button to driver role, and only if job is editable */}
-                    {user?.role === 'driver' && relatedJob && canDriverEditJob(relatedJob) && relatedJob?.id && (
+                    {(user?.role === 'driver' || user?.role === 'head_of_operation') && relatedJob && canDriverEditJob(relatedJob) && relatedJob?.id && (
                       <Button variant="outline" size="sm" asChild>
                         <Link to={`/driver/jobs/${relatedJob.id}`} className="text-inherit no-underline">
                           <Smartphone className="h-4 w-4 mr-2" />
@@ -1453,7 +1557,7 @@ const BookingDetail = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm font-medium text-muted-foreground">Driver Details</p>
-                    {user?.role === 'driver' && relatedJob && canDriverEditJob(relatedJob) && relatedJob?.id && (
+                    {(user?.role === 'driver' || user?.role === 'head_of_operation') && relatedJob && canDriverEditJob(relatedJob) && relatedJob?.id && (
                       <Button variant="outline" size="sm" asChild>
                         <Link to={`/driver/jobs/${relatedJob.id}`} className="text-inherit no-underline">
                           <Smartphone className="h-4 w-4 mr-2" />

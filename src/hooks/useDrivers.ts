@@ -2,10 +2,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { driverService, type Driver, type DriverProfileRequest } from '@/services/driver.service';
 
-export function useDrivers() {
+/** The driver list is admin-only on the API; pass `enabled: false` for other roles. */
+export function useDrivers(enabled = true) {
   return useQuery({
     queryKey: ['drivers'],
     queryFn: () => driverService.getDrivers(),
+    enabled,
     retry: false,
     refetchOnWindowFocus: false,
   });

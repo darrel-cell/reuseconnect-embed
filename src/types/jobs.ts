@@ -55,6 +55,8 @@ export interface Job {
   currentLat?: number;
   currentLng?: number;
   postcode?: string; // Postcode for the main site address
+  siteContactName?: string; // On-site contact, from the collection site
+  siteContactPhone?: string;
   // Driver journey fields (entered before starting journey in routed status)
   dial2Collection?: string | null;
   securityRequirements?: string | null;

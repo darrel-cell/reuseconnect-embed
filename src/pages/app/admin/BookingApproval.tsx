@@ -15,15 +15,18 @@ import {
   Shield,
   Award,
   Download,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { bookingClientContact, bookingCreatorBadge, bookingTitle, websiteHref } from "@/lib/booking-display";
 import { CollectionDetailsEditDialog } from "@/components/booking/CollectionDetailsEditDialog";
+import { SiteContactEditDialog } from "@/components/booking/SiteContactEditDialog";
 import {
   COLLECTION_DETAIL_FIELDS,
   collectionDetailsFromBooking,
+  formatCollectionAddress,
   formatCollectionDetailsAudit,
   hasAnyCollectionDetail,
 } from "@/lib/collection-details";
@@ -174,6 +177,7 @@ const BookingApproval = () => {
   const bookingQueuePath = "/admin/bookings";
   const isFreeCollectionBooking = useMemo(() => isFreeCourierBooking(booking), [booking]);
   const [isEditingCollection, setIsEditingCollection] = useState(false);
+  const [isEditingContact, setIsEditingContact] = useState(false);
 
   useEffect(() => {
     if (!booking || !id) return;
@@ -635,22 +639,55 @@ const BookingApproval = () => {
 
           <div className="border-t" />
 
-          <DetailGroup title="Collection">
+          <DetailGroup
+            title="Collection"
+            action={
+              booking.jmlSubType !== 'mover' && (
+                <Button variant="outline" size="sm" onClick={() => setIsEditingContact(true)}>
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit site contact
+                </Button>
+              )
+            }
+          >
             {booking.jmlSubType === 'mover' && booking.currentAddress ? (
               <>
                 <DetailField
                   label={isDeliveredJmlFinalReview ? 'Site (Collection)' : 'From (Collection)'}
                   value={booking.currentSiteName || (isDeliveredJmlFinalReview ? 'Previous location' : 'Current Address')}
-                  sub={booking.currentAddress}
+                  sub={formatCollectionAddress(booking.currentAddress, booking.currentPostcode)}
                 />
                 <DetailField
                   label={isDeliveredJmlFinalReview ? 'Site (Delivery)' : 'To (Delivery)'}
                   value={booking.siteName}
-                  sub={booking.siteAddress}
+                  sub={formatCollectionAddress(booking.siteAddress, booking.postcode)}
                 />
               </>
             ) : (
-              <DetailField label="Site" value={booking.siteName} sub={booking.siteAddress} />
+              <>
+                <DetailField
+                  label="Site"
+                  value={booking.siteName}
+                  sub={formatCollectionAddress(booking.siteAddress, booking.postcode)}
+                />
+                {booking.jmlSubType !== 'mover' && (
+                  <DetailField
+                    label="Site Contact"
+                    value={booking.siteContactName}
+                    sub={
+                      booking.siteContactPhone && (
+                        <a
+                          href={`tel:${booking.siteContactPhone}`}
+                          className="inline-flex items-center gap-1 text-primary break-all"
+                        >
+                          <Phone className="h-3 w-3" />
+                          {booking.siteContactPhone}
+                        </a>
+                      )
+                    }
+                  />
+                )}
+              </>
             )}
             <DetailField
               label="Scheduled Date"
@@ -673,6 +710,14 @@ const BookingApproval = () => {
               <DetailField label="Charity Donation" value={`${booking.charityPercent}%`} />
             )}
           </DetailGroup>
+          {booking.jmlSubType !== 'mover' && (
+            <SiteContactEditDialog
+              bookingId={booking.id}
+              booking={booking}
+              open={isEditingContact}
+              onOpenChange={setIsEditingContact}
+            />
+          )}
 
           {(booking.bookingType !== 'jml' || hasAnyCollectionDetail(collectionDetailsFromBooking(booking))) && (
             <>

@@ -1025,7 +1025,7 @@ const Booking = () => {
                   
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="contactName" className="text-sm">Contact Name</Label>
+                      <Label htmlFor="contactName" className="text-sm">Site Contact Name</Label>
                       <Input
                         id="contactName"
                         placeholder="Site contact person"
@@ -1033,12 +1033,11 @@ const Booking = () => {
                         onChange={(e) =>
                           setSiteDetails({ ...siteDetails, contactName: e.target.value })
                         }
-                        disabled={selectedSiteId && selectedSiteId !== 'new'}
                         className="h-9"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="contactPhone" className="text-sm">Contact Phone</Label>
+                      <Label htmlFor="contactPhone" className="text-sm">Site Contact Phone</Label>
                       <Input
                         id="contactPhone"
                         placeholder="+44 ..."
@@ -1046,7 +1045,6 @@ const Booking = () => {
                         onChange={(e) =>
                           setSiteDetails({ ...siteDetails, contactPhone: e.target.value })
                         }
-                        disabled={selectedSiteId && selectedSiteId !== 'new'}
                         className="h-9"
                       />
                     </div>
@@ -1452,6 +1450,12 @@ const Booking = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Postcode</span>
                     <span className="font-semibold text-foreground">{siteDetails.postcode}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Site Contact</span>
+                    <span className="font-semibold text-foreground text-right max-w-[60%]">
+                      {[siteDetails.contactName, siteDetails.contactPhone].filter(Boolean).join(" · ") || "—"}
+                    </span>
                   </div>
                   {scheduledDate && (
                     <div className="flex justify-between text-sm">

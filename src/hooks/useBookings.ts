@@ -257,3 +257,22 @@ export function useUpdateBookingJourneyFields() {
   });
 }
 
+export function useUpdateBookingSiteContact() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      contact,
+    }: {
+      bookingId: string;
+      contact: { siteContactName: string; siteContactPhone: string };
+    }) => bookingService.updateSiteContact(bookingId, contact),
+    onSuccess: async (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', variables.bookingId] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+}
+

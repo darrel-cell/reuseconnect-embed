@@ -66,6 +66,8 @@ class BookingService {
       postcode: request.postcode,
       lat: request.coordinates?.lat,
       lng: request.coordinates?.lng,
+      contactName: request.contactName,
+      contactPhone: request.contactPhone,
       scheduledDate: request.scheduledDate,
       assets: request.assets,
       charityPercent: request.charityPercent || 0,
@@ -222,6 +224,13 @@ class BookingService {
     }
   ): Promise<Booking> {
     return apiClient.patch<Booking>(`/bookings/${bookingId}/journey-fields`, fields);
+  }
+
+  async updateSiteContact(
+    bookingId: string,
+    contact: { siteContactName: string; siteContactPhone: string }
+  ): Promise<Booking> {
+    return apiClient.patch<Booking>(`/bookings/${bookingId}/site-contact`, contact);
   }
 }
 

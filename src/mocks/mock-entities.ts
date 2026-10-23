@@ -75,6 +75,9 @@ export interface Booking {
   postcode?: string;
   lat?: number;
   lng?: number;
+  /** On-site contact, held on the collection site. */
+  siteContactName?: string | null;
+  siteContactPhone?: string | null;
   scheduledDate: string;
   status: BookingLifecycleStatus | 'cancelled';
   /** Status transitions, newest last. Present on single-booking reads. */

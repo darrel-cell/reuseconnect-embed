@@ -33,6 +33,9 @@ export interface BackendJob {
   currentSiteName?: string;
   currentLat?: number;
   currentLng?: number;
+  postcode?: string | null;
+  siteContactName?: string | null;
+  siteContactPhone?: string | null;
   dial2Collection?: string | null;
   securityRequirements?: string | null;
   idRequired?: string | null;
@@ -286,6 +289,9 @@ export function transformJob(backendJob: BackendJob): Job {
     currentSiteName: backendJob.currentSiteName,
     currentLat: backendJob.currentLat,
     currentLng: backendJob.currentLng,
+    postcode: backendJob.postcode || undefined,
+    siteContactName: backendJob.siteContactName || undefined,
+    siteContactPhone: backendJob.siteContactPhone || undefined,
     dial2Collection: backendJob.dial2Collection ?? null,
     securityRequirements: backendJob.securityRequirements ?? null,
     idRequired: backendJob.idRequired ?? null,
