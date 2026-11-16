@@ -105,7 +105,7 @@ const Index = () => {
                 delay={0.2}
               />
               <StatCard
-                title="CO₂e Saved"
+                title="CO₂e Avoided"
                 value={`${(stats.totalCO2eSaved / 1000).toFixed(1)}t`}
                 subtitle="Environmental impact"
                 icon={Leaf}

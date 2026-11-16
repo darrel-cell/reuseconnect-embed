@@ -1222,7 +1222,7 @@ const JMLLeaver = () => {
                       ? `${(co2eSaved / 1000).toFixed(1)}t` 
                       : `${co2eSaved.toFixed(1)}kg`}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">CO₂e Saved</p>
+                  <p className="text-xs text-muted-foreground mt-1">CO₂e Avoided</p>
                 </div>
                 <div className="min-w-0 overflow-hidden">
                   <p className={cn(
@@ -1470,7 +1470,7 @@ const JMLLeaver = () => {
                             {netCO2e > 0 
                               ? "Positive environmental benefit" 
                               : netCO2e < 0 
-                              ? "Travel emissions exceed reuse savings"
+                              ? "Travel emissions exceed the CO₂e avoided by reuse"
                               : "Neutral impact"}
                           </p>
                         )}
@@ -1485,18 +1485,18 @@ const JMLLeaver = () => {
                     </span>
                     <span className="flex items-center gap-1">
                       <Truck className="h-4 w-4" />
-                      {co2eEquivalencies.carMiles(netCO2e)} miles saved
+                      {co2eEquivalencies.carMiles(netCO2e)} miles not driven
                     </span>
                   </div>
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
                     <span className="flex items-center gap-1">
                       <TreeDeciduous className="h-4 w-4" />
-                      {co2eEquivalencies.treesPlanted(co2eSaved)} trees from CO₂e saved
+                      {co2eEquivalencies.treesPlanted(co2eSaved)} trees from CO₂e avoided
                     </span>
                     <span className="flex items-center gap-1">
                       <Truck className="h-4 w-4" />
-                      {co2eEquivalencies.carMiles(co2eSaved)} miles from CO₂e saved
+                      {co2eEquivalencies.carMiles(co2eSaved)} miles from CO₂e avoided
                     </span>
                   </div>
                 </CardContent>

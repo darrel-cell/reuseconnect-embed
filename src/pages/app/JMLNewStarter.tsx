@@ -1335,7 +1335,7 @@ const JMLNewStarter = () => {
                               ? `${(co2eSavedForDisplay / 1000).toFixed(1)}t`
                               : `${co2eSavedForDisplay.toFixed(1)}kg`}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">CO₂e Saved</p>
+                          <p className="text-xs text-muted-foreground mt-1">CO₂e Avoided</p>
                         </div>
 
                         <div className="min-w-0 overflow-hidden">
@@ -1382,7 +1382,7 @@ const JMLNewStarter = () => {
                         )}
                       >
                         {co2eSavedForDisplay > 0 && "✓ "}
-                        ≈ {co2eEquivalencies.treesPlanted(co2eSavedForDisplay)} trees planted equivalent from CO₂e saved
+                        ≈ {co2eEquivalencies.treesPlanted(co2eSavedForDisplay)} trees planted equivalent from CO₂e avoided
                       </p>
 
                       <p

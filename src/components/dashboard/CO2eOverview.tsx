@@ -61,7 +61,7 @@ export function CO2eOverview() {
               <span className="text-sm font-medium text-primary-foreground/80">Environmental Impact</span>
             </div>
             <p className="text-4xl font-bold">{(totalCO2e / 1000).toFixed(1)}t</p>
-            <p className="text-sm text-primary-foreground/70">CO₂e saved (reuse minus travel)</p>
+            <p className="text-sm text-primary-foreground/70">CO₂e avoided (reuse minus travel)</p>
             {isClient && (completedCount > 0 || bookedCount > 0) && (
               <div className="flex items-center gap-3 mt-3 pt-3 border-t border-primary-foreground/20">
                 <div className="flex items-center gap-1.5">

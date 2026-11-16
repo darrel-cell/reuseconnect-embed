@@ -1615,7 +1615,7 @@ const BookingDetail = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Estimated CO₂e Saved</p>
+                <p className="text-sm text-muted-foreground">Estimated CO₂e Avoided</p>
                 <p className="text-2xl font-bold text-success">
                   {(booking.estimatedCO2e / 1000).toFixed(1)}t
                 </p>

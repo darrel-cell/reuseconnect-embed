@@ -154,7 +154,7 @@ const BookingSummary = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">CO₂e Saved</p>
+                <p className="text-sm text-muted-foreground">CO₂e Avoided</p>
                 <p className="text-2xl font-bold">{(totalCO2e / 1000).toFixed(1)}t</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Environmental impact

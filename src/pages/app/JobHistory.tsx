@@ -162,7 +162,7 @@ const JobHistory = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">CO₂e Saved</p>
+                  <p className="text-sm text-muted-foreground">CO₂e Avoided</p>
                   <p className="text-2xl font-bold">{(totalCO2e / 1000).toFixed(1)}t</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-success/50" />
@@ -359,7 +359,7 @@ const JobHistory = () => {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground">CO₂e Saved</p>
+                      <p className="text-xs text-muted-foreground">CO₂e Avoided</p>
                       <p className="font-semibold">{(job.co2eSaved / 1000).toFixed(1)}t</p>
                     </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />

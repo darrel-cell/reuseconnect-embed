@@ -1699,7 +1699,7 @@ const JMLMover = () => {
                         ? `${(co2eSaved / 1000).toFixed(1)}t`
                         : `${co2eSaved.toFixed(1)}kg`}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">CO₂e Saved</p>
+                    <p className="text-xs text-muted-foreground mt-1">CO₂e Avoided</p>
                   </div>
 
                   <div className="min-w-0 overflow-hidden">
@@ -1766,7 +1766,7 @@ const JMLMover = () => {
                   )}
                 >
                   {co2eSaved > 0 && "✓ "}
-                  ≈ {co2eEquivalencies.treesPlanted(co2eSaved)} trees planted equivalent from CO₂e saved
+                  ≈ {co2eEquivalencies.treesPlanted(co2eSaved)} trees planted equivalent from CO₂e avoided
                 </p>
               </CardContent>
             </Card>
@@ -1936,7 +1936,7 @@ const JMLMover = () => {
                               ? `${(co2eSaved / 1000).toFixed(1)}t`
                               : `${co2eSaved.toFixed(1)}kg`}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">CO₂e Saved</p>
+                          <p className="text-xs text-muted-foreground mt-1">CO₂e Avoided</p>
                         </div>
 
                         <div className="min-w-0 overflow-hidden">
@@ -1997,7 +1997,7 @@ const JMLMover = () => {
                         )}
                       >
                         {co2eSaved > 0 && "✓ "}
-                        ≈ {co2eEquivalencies.treesPlanted(co2eSaved)} trees planted equivalent from CO₂e saved
+                        ≈ {co2eEquivalencies.treesPlanted(co2eSaved)} trees planted equivalent from CO₂e avoided
                       </p>
                     </div>
                   </CardContent>

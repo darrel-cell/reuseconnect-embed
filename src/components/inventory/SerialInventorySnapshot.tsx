@@ -73,7 +73,7 @@ export function SerialInventorySnapshot({ lookup, mismatches, loading, variant }
             </span>
             <span className="inline-flex items-center gap-1">
               <Leaf className="h-3.5 w-3.5 text-success" aria-hidden />
-              CO₂e saved (total):{" "}
+              CO₂e avoided (total):{" "}
               <span className="font-medium text-foreground">{reuse.totalCO2e.toFixed(2)} kg</span>
             </span>
           </div>

@@ -363,7 +363,7 @@ const CO2eDashboard = () => {
     const bookedJobs = clientJobs.filter(j => j.status !== 'completed');
     
     return {
-      // For UI: "CO₂e Saved" = reuse savings - travel emissions (net benefit)
+      // For UI: "CO₂e Avoided" = reuse savings - travel emissions (net benefit)
       totalSaved: netBenefit,
       totalTravel,
       netBenefit,
@@ -689,7 +689,7 @@ const CO2eDashboard = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>organisation</TableHead>
-                    <TableHead className="text-right">Net saved (t)</TableHead>
+                    <TableHead className="text-right">Net avoided (t)</TableHead>
                     <TableHead className="text-right">Travel (kg)</TableHead>
                     <TableHead className="text-right">Jobs</TableHead>
                   </TableRow>
@@ -792,7 +792,7 @@ const CO2eDashboard = () => {
                 <TableHeader>
                   <TableRow>
                         <TableHead>User (Client)</TableHead>
-                    <TableHead className="text-right">Net saved (t)</TableHead>
+                    <TableHead className="text-right">Net avoided (t)</TableHead>
                     <TableHead className="text-right">Travel (kg)</TableHead>
                     <TableHead className="text-right">Jobs</TableHead>
                   </TableRow>
@@ -931,8 +931,8 @@ const CO2eDashboard = () => {
                         <TableHead>Device</TableHead>
                         <TableHead>Make / Model</TableHead>
                         <TableHead className="text-right">Reuse</TableHead>
-                        <TableHead className="text-right">Total saved (t)</TableHead>
-                        <TableHead className="text-right">Avg saved (t)</TableHead>
+                        <TableHead className="text-right">Total avoided (t)</TableHead>
+                        <TableHead className="text-right">Avg avoided (t)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1111,7 +1111,7 @@ const CO2eDashboard = () => {
                         </div>
                         <div className="space-y-1.5 text-xs">
                           <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">CO₂e Saved</span>
+                            <span className="text-muted-foreground">CO₂e Avoided</span>
                             <span className="font-bold text-success">
                               {(clientStat.totalCO2e / 1000).toFixed(1)}t
                             </span>
@@ -1141,7 +1141,7 @@ const CO2eDashboard = () => {
               <div className="p-4 border-t border-border bg-muted/30">
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Total CO₂e Saved</span>
+                    <span className="text-muted-foreground">Total CO₂e Avoided</span>
                     <span className="font-bold text-success">
                       {(clientCO2Stats.reduce((sum, c) => sum + c.totalCO2e, 0) / 1000).toFixed(1)}t
                     </span>
@@ -1176,8 +1176,8 @@ const CO2eDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">
                   {selectedClient 
-                    ? `${selectedClient.name}'s CO₂e savings and ESG metrics`
-                    : "Your clients' CO₂e savings and ESG metrics"}
+                    ? `${selectedClient.name}'s avoided CO₂e and ESG metrics`
+                    : "Your clients' avoided CO₂e and ESG metrics"}
                 </p>
               </div>
             </motion.div>
@@ -1195,7 +1195,7 @@ const CO2eDashboard = () => {
                       <div className="p-1.5 rounded-lg bg-success/10">
                         <TrendingUp className="h-4 w-4 text-success" />
                       </div>
-                      <span className="text-xs font-medium text-muted-foreground">CO₂e Saved</span>
+                      <span className="text-xs font-medium text-muted-foreground">CO₂e Avoided</span>
                     </div>
                     <p className="text-2xl font-bold text-success">{(totalSaved / 1000).toFixed(1)}t</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Through IT asset reuse</p>
@@ -1284,7 +1284,7 @@ const CO2eDashboard = () => {
               >
                 <Card className="h-full">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">CO₂e Savings Trend</CardTitle>
+                    <CardTitle className="text-sm">CO₂e Avoided Trend</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="h-48">
@@ -1318,7 +1318,7 @@ const CO2eDashboard = () => {
                               borderRadius: "8px",
                               fontSize: "12px"
                             }}
-                            formatter={(value: number) => [`${(value/1000).toFixed(1)}t`, "CO₂e Saved"]}
+                            formatter={(value: number) => [`${(value/1000).toFixed(1)}t`, "CO₂e Avoided"]}
                           />
                           <Area
                             type="monotone"
@@ -1344,7 +1344,7 @@ const CO2eDashboard = () => {
               >
                 <Card className="h-full">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Savings by Asset Category</CardTitle>
+                    <CardTitle className="text-sm">CO₂e Avoided by Asset Category</CardTitle>
                   </CardHeader>
                   <CardContent className="pl-6">
                     <CategorySavingsPanel
@@ -1387,7 +1387,7 @@ const CO2eDashboard = () => {
                             siteName: j.siteName,
                             date: `${month} ${year}`,
                             fullName: `${j.erpJobNumber} - ${j.siteName} (${month} ${year})`,
-                            // UI meaning: CO₂e Saved (net benefit) = reuse savings - travel emissions
+                            // UI meaning: CO₂e Avoided (net benefit) = reuse savings - travel emissions
                             saved: ((j.co2eSaved || 0) - (j.travelEmissions || 0)) / 1000,
                             travel: j.travelEmissions / 1000
                           };
@@ -1494,7 +1494,7 @@ const CO2eDashboard = () => {
                             return label;
                           }}
                         />
-                            <Bar dataKey="saved" name="CO₂e Saved" fill="hsl(168, 70%, 35%)" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="saved" name="CO₂e Avoided" fill="hsl(168, 70%, 35%)" radius={[4, 4, 0, 0]} />
                           </BarChart>
                         );
                       })()}
@@ -1519,7 +1519,7 @@ const CO2eDashboard = () => {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <p className="text-muted-foreground">Your CO₂e savings and ESG metrics</p>
+          <p className="text-muted-foreground">Your avoided CO₂e and ESG metrics</p>
         </div>
       </motion.div>
 
@@ -1536,7 +1536,7 @@ const CO2eDashboard = () => {
                 <div className="p-2 rounded-lg bg-success/10">
                   <TrendingUp className="h-5 w-5 text-success" />
                 </div>
-                <span className="text-sm font-medium text-muted-foreground">CO₂e Saved</span>
+                <span className="text-sm font-medium text-muted-foreground">CO₂e Avoided</span>
               </div>
               <p className="text-4xl font-bold text-success">{(totalSaved / 1000).toFixed(1)}t</p>
               <p className="text-sm text-muted-foreground mt-1">Through IT asset reuse</p>
@@ -1625,7 +1625,7 @@ const CO2eDashboard = () => {
         >
           <Card className="h-full">
             <CardHeader>
-              <CardTitle className="text-base">CO₂e Savings Trend</CardTitle>
+              <CardTitle className="text-base">CO₂e Avoided Trend</CardTitle>
             </CardHeader>
             <CardContent className="pl-0 sm:pl-6">
               <div className="h-64">
@@ -1658,7 +1658,7 @@ const CO2eDashboard = () => {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px"
                       }}
-                      formatter={(value: number) => [`${(value/1000).toFixed(1)}t`, "CO₂e Saved"]}
+                      formatter={(value: number) => [`${(value/1000).toFixed(1)}t`, "CO₂e Avoided"]}
                     />
                     <Area
                       type="monotone"
@@ -1684,7 +1684,7 @@ const CO2eDashboard = () => {
         >
           <Card className="h-full">
             <CardHeader>
-              <CardTitle className="text-base">Savings by Asset Category</CardTitle>
+              <CardTitle className="text-base">CO₂e Avoided by Asset Category</CardTitle>
             </CardHeader>
             <CardContent className="pl-6">
               <CategorySavingsPanel
@@ -1845,7 +1845,7 @@ const CO2eDashboard = () => {
                       return label;
                     }}
                   />
-                  <Bar dataKey="saved" name="CO₂e Saved" fill="hsl(168, 70%, 35%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="saved" name="CO₂e Avoided" fill="hsl(168, 70%, 35%)" radius={[4, 4, 0, 0]} />
                 </BarChart>
                   );
                 })()}
