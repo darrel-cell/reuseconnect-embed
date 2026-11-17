@@ -140,7 +140,7 @@ const BookingSummary = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Resale Value</p>
+                <p className="text-sm text-muted-foreground">Total Graded Value</p>
                 <p className="text-2xl font-bold">£{totalResaleValue.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Final buyback value
@@ -205,7 +205,7 @@ const BookingSummary = () => {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">£{resaleValue.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">Resale value</p>
+                    <p className="text-xs text-muted-foreground">Graded value</p>
                   </div>
                 </div>
               );

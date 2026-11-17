@@ -49,6 +49,7 @@ import { WorkflowTimeline } from "@/components/jobs/WorkflowTimeline";
 import { JobStatusBadge } from "@/components/jobs/JobStatusBadge";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
+import { clientSettlement } from "@/lib/client-settlement";
 import { co2eEquivalencies, getWorkflowStatusLabel } from "@/lib/constants";
 import type { Evidence, WorkflowStatus } from "@/types/jobs";
 import {
@@ -285,7 +286,8 @@ const JobDetail = () => {
     return job.buybackValue * (1 - job.charityPercent / 100);
   }, [job]);
 
-  const totalClientResponsibility = useMemo(() => {
+  // Buyback after charity set against the cost of service: who pays whom.
+  const settlement = useMemo(() => {
     if (
       !job ||
       job.costOfServiceTotal == null ||
@@ -293,8 +295,8 @@ const JobDetail = () => {
     ) {
       return null;
     }
-    return job.costOfServiceTotal - totalBuybackAfterCharity;
-  }, [job, totalBuybackAfterCharity]);
+    return clientSettlement(totalBuybackAfterCharity - job.costOfServiceTotal, user?.role === "client");
+  }, [job, totalBuybackAfterCharity, user?.role]);
   
   // Filter out drivers without allocated vehicles
   const driversWithVehicles = drivers.filter(driver => driver.hasVehicle && (driver.vehicleReg || (driver.vehicles && driver.vehicles.length > 0)));
@@ -921,12 +923,9 @@ const JobDetail = () => {
                 </div>
 
                 <div className="flex justify-between gap-3 pt-2 border-t border-border font-semibold">
-                  <span>Total Client Responsibility</span>
+                  <span>{settlement?.label ?? "Balance"}</span>
                   <span className="tabular-nums text-base">
-                    {totalClientResponsibility != null &&
-                    Number.isFinite(totalClientResponsibility)
-                      ? formatGbp(totalClientResponsibility)
-                      : "—"}
+                    {settlement ? formatGbp(settlement.amount) : "—"}
                   </span>
                 </div>
               </CardContent>
