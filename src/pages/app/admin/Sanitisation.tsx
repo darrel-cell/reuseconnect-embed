@@ -17,12 +17,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
+import { documentsService } from "@/services/documents.service";
 
 const sanitisationMethods = [
-  { value: 'blancco', label: 'NIST-800-88 Software Wipe' },
+  { value: 'blancco', label: 'Nist-800-88 Software Wipe' },
   { value: 'physical-destruction', label: 'Physical Destruction' },
   { value: 'degaussing', label: 'Degaussing' },
   { value: 'shredding', label: 'Shredding' },
+  { value: 'factory-reset', label: 'Factory Reset/vLAN Clears/Config Wiped' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -30,7 +32,7 @@ const sanitisationMethods = [
 type SanitisationMethod = SanitisationRecord['method'];
 const isSanitisationMethod = (value: string): value is SanitisationMethod =>
   value === 'blancco' || value === 'physical-destruction' || value === 'degaussing' ||
-  value === 'shredding' || value === 'other';
+  value === 'shredding' || value === 'factory-reset' || value === 'other';
 
 const Sanitisation = () => {
   const { id } = useParams();
@@ -126,12 +128,38 @@ const Sanitisation = () => {
     );
   }
 
-  if (booking.status !== 'collected' && booking.status !== 'warehouse' && booking.status !== 'sanitised' && booking.status !== 'graded' && booking.status !== 'completed') {
+  const isMover = booking.bookingType === 'jml' && booking.jmlSubType === 'mover';
+  const canAdvanceToSanitised = booking.status === 'warehouse';
+  const canRecordSanitisation =
+    booking.status === 'warehouse' || booking.status === 'sanitised';
+  const canViewSanitisation =
+    canRecordSanitisation ||
+    booking.status === 'collected' ||
+    booking.status === 'graded' ||
+    booking.status === 'completed';
+  const gradingPath = `/admin/grading/${id}`;
+
+  if (isMover) {
     return (
       <div className="space-y-6">
         <Alert>
           <AlertDescription>
-            Sanitisation can only be performed on collected or warehouse bookings. Current status: {booking.status}
+            Mover bookings skip sanitisation and go from warehouse to grading.
+          </AlertDescription>
+        </Alert>
+        <Button asChild>
+          <Link to={gradingPath} className="text-inherit no-underline">Open Grading Workflow</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (!canViewSanitisation) {
+    return (
+      <div className="space-y-6">
+        <Alert>
+          <AlertDescription>
+            Sanitisation starts after warehouse receipt. Current status: {booking.status}
           </AlertDescription>
         </Alert>
         <Button asChild>
@@ -159,10 +187,7 @@ const Sanitisation = () => {
   const handleMoveToNextStatus = () => {
     if (!id || !booking) return;
     
-    // Update status if moving from 'collected' or 'warehouse' to 'sanitised'
-    // Do NOT update to 'graded' - that should only happen after actual grading is completed
-    if (booking.status === 'collected' || booking.status === 'warehouse') {
-      // Update to 'sanitised' status
+    if (booking.status === 'warehouse') {
       updateBookingStatus.mutate(
         { bookingId: id, status: 'sanitised' },
         {
@@ -398,6 +423,24 @@ const Sanitisation = () => {
                           </div>
                         </div>
                         <div className="flex flex-col gap-2">
+                          {(record.certificateDocumentIds?.length ?? 0) > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  for (const docId of record.certificateDocumentIds!) {
+                                    await documentsService.downloadDocument(docId);
+                                  }
+                                } catch (err) {
+                                  toast.error(err instanceof Error ? err.message : 'Failed to download certificate');
+                                }
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              {record.certificateDocumentIds!.length > 1 ? 'PDFs' : 'PDF'}
+                            </Button>
+                          )}
                           {!record.verified && (
                             <Button
                               size="sm"
@@ -420,7 +463,7 @@ const Sanitisation = () => {
       </div>
 
       {/* Approval Button */}
-      {allAssetsSanitised && (booking.status === 'collected' || booking.status === 'warehouse') && (
+      {allAssetsSanitised && canAdvanceToSanitised && (
         <Card className="bg-success/5 border-success/20 border-2">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

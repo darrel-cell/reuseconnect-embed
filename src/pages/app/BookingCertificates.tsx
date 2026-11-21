@@ -8,13 +8,33 @@ import { useBooking } from "@/hooks/useBookings";
 import { useJob } from "@/hooks/useJobs";
 import { useAuth } from "@/contexts/auth-context";
 import { useSanitisationRecords } from "@/hooks/useSanitisation";
+import { useBookingDocuments } from "@/hooks/useBookingDocuments";
 import { canDriverEditJob } from "@/utils/job-helpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
 import { UK_TIME_ZONE } from '@/lib/datetime';
 import { isAdminLikeRole } from '@/lib/roles';
-import { documentsService } from "@/services/documents.service";
+import { sanitisationMethodsLabel } from '@/lib/sanitisation';
+import { documentsService, type Document } from "@/services/documents.service";
 import { toast } from "sonner";
+
+function formatDocumentType(type: string): string {
+  const labels: Record<string, string> = {
+    'chain-of-custody': 'Chain of Custody',
+    toc: 'Transfer of Custody',
+    certificate: 'Certificate',
+    'grading-report': 'Grading report',
+    other: 'Document',
+  };
+  return labels[type] || type.replace(/-/g, ' ');
+}
+
+async function downloadDoc(doc: Document) {
+  try {
+    await documentsService.downloadDocument(doc.id);
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Failed to download document');
+  }
+}
 
 const sanitisationMethods = [
   { value: 'blancco', label: 'Nist-800-88 Software Wipe' },
@@ -31,8 +51,9 @@ const BookingCertificates = () => {
   const { data: booking, isLoading: isLoadingBooking } = useBooking(id || null);
   const { data: relatedJob } = useJob(booking?.jobId || null);
   const { data: records = [], isLoading: isLoadingRecords } = useSanitisationRecords(id);
+  const { data: bookingDocuments = [], isLoading: isLoadingDocuments } = useBookingDocuments(id);
 
-  if (isLoadingBooking || isLoadingRecords) {
+  if (isLoadingBooking || isLoadingRecords || isLoadingDocuments) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -111,6 +132,18 @@ const BookingCertificates = () => {
     return acc;
   }, {} as Record<string, typeof records>);
 
+  const custodyDocs = bookingDocuments.filter(
+    (d) => d.type === 'toc' || d.type === 'chain-of-custody'
+  );
+  const completionDocs = bookingDocuments.filter(
+    (d) => d.type === 'certificate' || d.type === 'grading-report' || d.type === 'other'
+  );
+  const hasBlanccoWithoutPdf = records.some((r) => {
+    const methods = r.methods?.length ? r.methods : [r.method];
+    return methods.includes('blancco') && !(r.certificateDocumentIds?.length);
+  });
+  const hasBlanccoUpload = completionDocs.some((d) => d.type === 'certificate');
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
@@ -129,18 +162,56 @@ const BookingCertificates = () => {
         </div>
       </motion.div>
 
-      {records.some((r) => {
-        const methods = r.methods?.length ? r.methods : [r.method];
-        return methods.includes('blancco') && !(r.certificateDocumentIds?.length);
-      }) && (
+      {hasBlanccoWithoutPdf && !hasBlanccoUpload && (
         <Alert>
           <AlertDescription>
-            Nist-800-88 (Blancco) wipe records do not generate an in-app PDF. Ask your admin to upload the Blancco certificate from the completed job’s documents panel.
+            Nist-800-88 (Blancco) wipe records do not generate an in-app PDF.
+            {isAdminLikeRole(user?.role)
+              ? ' Upload the Blancco certificate from the job detail page after the booking is completed (Upload completion documents → Certificate).'
+              : ' Ask your admin to upload the Blancco certificate after the job is completed.'}
           </AlertDescription>
         </Alert>
       )}
 
+      {/* Custody documents (TOC / CoC) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Custody documents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {custodyDocs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Transfer of Custody and Chain of Custody PDFs appear here after collection and warehouse receipt.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {custodyDocs.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-muted/50"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{doc.name || formatDocumentType(doc.type)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDocumentType(doc.type)}
+                      {' · '}
+                      {new Date(doc.createdAt).toLocaleString('en-GB', { timeZone: UK_TIME_ZONE })}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => downloadDoc(doc)}>
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Certificates List */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Sanitisation certificates</h2>
       {records.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
@@ -148,11 +219,11 @@ const BookingCertificates = () => {
               <Shield className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground">No sanitisation certificates available yet</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {booking.status === 'collected' || booking.status === 'sanitised' || booking.status === 'graded' || booking.status === 'completed'
+                {booking.status === 'warehouse' || booking.status === 'sanitised' || booking.status === 'graded' || booking.status === 'completed'
                   ? "Assets need to be sanitised through the Sanitisation Management page."
-                  : "Certificates will appear here once assets are collected and sanitised."}
+                  : "Certificates will appear here once assets are collected, received at warehouse, and sanitised."}
               </p>
-              {(booking.status === 'collected' || booking.status === 'sanitised') && isAdminLikeRole(user?.role) && (
+              {(booking.status === 'warehouse' || booking.status === 'sanitised' || booking.status === 'graded') && isAdminLikeRole(user?.role) && (
                 <Button className="mt-4" asChild>
                   <Link to={`/admin/sanitisation/${id}`} className="text-inherit no-underline">
                     Go to Sanitisation Management
@@ -185,7 +256,7 @@ const BookingCertificates = () => {
                           <div className="flex items-center gap-2 flex-wrap">
                             <Shield className="h-5 w-5 text-primary" />
                             <span className="font-medium">
-                              {sanitisationMethods.find(m => m.value === record.method)?.label || record.method}
+                              {record.quantity} × {sanitisationMethodsLabel(record, sanitisationMethods)}
                             </span>
                             {record.verified ? (
                               <Badge className="bg-success/10 text-success">
@@ -214,6 +285,9 @@ const BookingCertificates = () => {
                             </p>
                             {record.methodDetails && (
                               <p><span className="text-muted-foreground">Method Details:</span> <span className="text-foreground">{record.methodDetails}</span></p>
+                            )}
+                            {record.serialNumbers?.length > 0 && (
+                              <p><span className="text-muted-foreground">Serial Numbers:</span> <span className="font-mono text-foreground">{record.serialNumbers.join(', ')}</span></p>
                             )}
                             {record.notes && (
                               <p className="text-xs"><span className="text-muted-foreground">Notes:</span> <span className="text-foreground">{record.notes}</span></p>
@@ -248,6 +322,43 @@ const BookingCertificates = () => {
           })}
         </div>
       )}
+      </div>
+
+      {/* Completion uploads (Blancco exports, grading reports, etc.) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Uploaded certificates & reports</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {completionDocs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Blancco certificates, grading reports, and other completion uploads appear here after an admin adds them on the completed job.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {completionDocs.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-muted/50"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{doc.name || formatDocumentType(doc.type)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDocumentType(doc.type)}
+                      {' · '}
+                      {new Date(doc.createdAt).toLocaleString('en-GB', { timeZone: UK_TIME_ZONE })}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => downloadDoc(doc)}>
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Booking Information */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -341,8 +452,9 @@ const BookingCertificates = () => {
             <div className="flex-1">
               <p className="font-medium text-foreground mb-1">About Certificates</p>
               <p className="text-sm text-muted-foreground">
-                Sanitisation certificates provide proof that data has been securely erased from your assets.
-                These certificates are important for compliance and can be used for audit purposes.
+                This page shows custody PDFs (TOC / CoC), sanitisation destruction certificates, and any
+                certificates or grading reports uploaded after the job is completed. Keep them for
+                compliance and audit.
               </p>
             </div>
           </div>
