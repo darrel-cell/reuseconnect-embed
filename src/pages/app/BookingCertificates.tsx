@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Shield, CheckCircle2, Clock, Loader2, FileText, Truck, User, Phone, Smartphone } from "lucide-react";
+import { ArrowLeft, Shield, CheckCircle2, Clock, Loader2, FileText, Truck, User, Phone, Smartphone, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { UK_TIME_ZONE } from '@/lib/datetime';
 import { isAdminLikeRole } from '@/lib/roles';
+import { documentsService } from "@/services/documents.service";
+import { toast } from "sonner";
 
 const sanitisationMethods = [
-  { value: 'blancco', label: 'Blancco Software Wipe' },
+  { value: 'blancco', label: 'Nist-800-88 Software Wipe' },
   { value: 'physical-destruction', label: 'Physical Destruction' },
   { value: 'degaussing', label: 'Degaussing' },
   { value: 'shredding', label: 'Shredding' },
+  { value: 'factory-reset', label: 'Factory Reset/vLAN Clears/Config Wiped' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -126,6 +129,17 @@ const BookingCertificates = () => {
         </div>
       </motion.div>
 
+      {records.some((r) => {
+        const methods = r.methods?.length ? r.methods : [r.method];
+        return methods.includes('blancco') && !(r.certificateDocumentIds?.length);
+      }) && (
+        <Alert>
+          <AlertDescription>
+            Nist-800-88 (Blancco) wipe records do not generate an in-app PDF. Ask your admin to upload the Blancco certificate from the completed job’s documents panel.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Certificates List */}
       {records.length === 0 ? (
         <Card>
@@ -165,10 +179,10 @@ const BookingCertificates = () => {
                     {assetRecords.map((record) => (
                       <div
                         key={record.id}
-                        className="flex items-start justify-between p-4 rounded-lg border bg-muted/50"
+                        className="flex items-start justify-between gap-3 p-4 rounded-lg border bg-muted/50"
                       >
                         <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Shield className="h-5 w-5 text-primary" />
                             <span className="font-medium">
                               {sanitisationMethods.find(m => m.value === record.method)?.label || record.method}
@@ -206,6 +220,25 @@ const BookingCertificates = () => {
                             )}
                           </div>
                         </div>
+                        {(record.certificateDocumentIds?.length ?? 0) > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0"
+                            onClick={async () => {
+                              try {
+                                for (const docId of record.certificateDocumentIds!) {
+                                  await documentsService.downloadDocument(docId);
+                                }
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : 'Failed to download certificate');
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            {record.certificateDocumentIds!.length > 1 ? 'Download PDFs' : 'Download PDF'}
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -98,7 +98,7 @@ const getMainNavItems = (role: string): NavItem[] => {
     { title: "Job History", url: "/jobs/history", icon: History, roles: ['driver', 'head_of_operation', 'warehouse_technician'], category: "operations" },
     { title: "Bookings", url: "/bookings", icon: CalendarCheck, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "operations" },
     { title: "Booking Queue", url: "/admin/bookings", icon: ListOrdered, roles: ['admin', 'head_of_operation'], category: "operations" },
-    { title: "Sites", url: "/sites", icon: MapPin, roles: ['admin', 'head_of_operation', 'client'], category: "organization" },
+    { title: "Sites", url: "/sites", icon: MapPin, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "organization" },
     { title: "Inventory", url: "/inventory", icon: Boxes, roles: ['admin', 'head_of_operation', 'client'], category: "warehouse" },
     { title: "Documents", url: "/documents", icon: FolderOpen, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "documents" },
     { title: "CO₂e Overview", url: "/co2e", icon: ChartPie, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "co2" },

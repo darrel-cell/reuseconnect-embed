@@ -81,6 +81,9 @@ const Sites = () => {
   const { user } = useAuth();
   const isAdmin = isAdminLikeRole(user?.role);
   const isClient = user?.role === 'client';
+  const isPartner = user?.role === 'partner';
+  // Admins and partners create sites against a chosen client; clients use their own.
+  const canSelectClient = isAdmin || isPartner;
   
   const [searchQuery, setSearchQuery] = useState("");
   const [clientFilter, setClientFilter] = useState<string>("all");
@@ -124,7 +127,7 @@ const Sites = () => {
   // Fetch sites - admin can filter by client, client sees only their own.
   // Paged, because /sites used to return every row in the tenant.
   const { sites, pagination, isLoading, isFetching, error } = useSitesPage({
-    clientId: isAdmin && clientFilter !== "all" ? clientFilter : undefined,
+    clientId: canSelectClient && clientFilter !== "all" ? clientFilter : undefined,
     page: sitesPage,
     limit: sitesLimit,
   });
@@ -801,7 +804,7 @@ const Sites = () => {
 
     // For clients, clientId is automatically set by backend
     // For admins, clientId must be provided
-    if (isAdmin && !formData.clientId) {
+    if (canSelectClient && !formData.clientId) {
       toast.error("Please select a client for this site");
       return;
     }
@@ -985,8 +988,8 @@ const Sites = () => {
         <div>
           <p className="flex items-center gap-1.5 text-muted-foreground">
             <span>
-              {isAdmin
-                ? "Manage all site addresses across clients"
+              {canSelectClient
+                ? "Manage site addresses across your clients"
                 : "Manage your site addresses"}
             </span>
             <InfoTooltip
@@ -1027,7 +1030,7 @@ const Sites = () => {
             className="pl-9"
           />
         </div>
-        {isAdmin && (
+        {canSelectClient && (
           <Select value={clientFilter} onValueChange={setClientFilter}>
             <SelectTrigger className="w-full sm:w-[250px]">
               <SelectValue placeholder="All Clients" />
@@ -1077,7 +1080,7 @@ const Sites = () => {
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <p className="truncate text-sm font-semibold text-foreground">{site.name}</p>
-                      {isAdmin && site.client && (
+                      {canSelectClient && site.client && (
                         <span className="inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
                           <Building2 className="h-3 w-3 shrink-0" />
                           <span className="truncate">{site.client.organisationName || site.client.name}</span>
@@ -1154,7 +1157,7 @@ const Sites = () => {
                         <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
                         <span className="truncate">{site.name}</span>
                       </CardTitle>
-                      {isAdmin && site.client && (
+                      {canSelectClient && site.client && (
                         <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
                           <Building2 className="h-3 w-3" />
                           {site.client.organisationName || site.client.name}
@@ -1224,14 +1227,14 @@ const Sites = () => {
           <DialogHeader>
             <DialogTitle>Add New Site</DialogTitle>
             <DialogDescription>
-              {isAdmin 
+              {canSelectClient
                 ? "Create a new site address. Select which client this site belongs to."
                 : "Create a new site address for your bookings."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitCreate}>
             <div className="space-y-4 py-4">
-              {isAdmin && (
+              {canSelectClient && (
                 <div className="space-y-2">
                   <Label htmlFor="clientId">Client *</Label>
                   <Select
@@ -1450,7 +1453,7 @@ const Sites = () => {
                   !formData.postcode.trim() ||
                   !formData.country.trim() ||
                   !validatePostcode(formData.postcode, formData.country) ||
-                  (isAdmin && !formData.clientId) ||
+                  (canSelectClient && !formData.clientId) ||
                   Object.keys(fieldErrors).length > 0 // Block only on critical errors, allow with warnings
                 }
               >
