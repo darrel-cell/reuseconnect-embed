@@ -168,12 +168,16 @@ export interface SanitisationRecord {
   bookingId: string;
   jobId?: string;
   assetId: string;
-  method: 'blancco' | 'physical-destruction' | 'degaussing' | 'shredding' | 'other';
+  method: 'blancco' | 'physical-destruction' | 'degaussing' | 'shredding' | 'factory-reset' | 'other';
+  methods?: Array<'blancco' | 'physical-destruction' | 'degaussing' | 'shredding' | 'factory-reset' | 'other'>;
   methodDetails?: string;
+  quantity?: number;
+  serialNumbers?: string[];
   timestamp: string;
   performedBy: string;
   certificateId: string;
   certificateUrl: string;
+  certificateDocumentIds?: string[];
   verified: boolean;
   notes?: string;
 }
