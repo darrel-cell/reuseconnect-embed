@@ -9,13 +9,13 @@ npm install
 npm run dev
 ```
 
-Runs on [http://localhost:8081](http://localhost:8081) and proxies `/api` to `http://localhost:3000`.
+Runs on [http://localhost:8081](http://localhost:8081) and proxies `/api` to the local API (`http://localhost:3200` by default — match `PORT` in the backend `.env`).
 
 Set on the backend:
 
 ```env
 EMBED_FRONTEND_URL=http://localhost:8081
-CORS_ORIGIN=http://localhost:8080,http://localhost:8081
+CORS_ORIGIN=http://localhost:8080,http://localhost:8081,http://localhost:3001
 ```
 
 For end-to-end testing with a real partner-shaped app, use `reuseconnect-partner-test` (Next.js) instead of any in-app mock page.
