@@ -143,7 +143,7 @@ test.describe('embed CO2e dashboard', () => {
   test('a client sees the new overview, not the old estimate and not the revenue share', async ({ page }) => {
     const errors = collectPageErrors(page);
 
-    await page.goto('/co2e');
+    await page.goto('/impact');
 
     await expect(page.getByRole('heading', { name: 'Environmental impact' })).toBeVisible();
     await expect(page.getByText('246.56').first()).toBeVisible();
@@ -167,15 +167,15 @@ test.describe('embed CO2e dashboard', () => {
   test('organisation and user views use the graded figures, and serial stays admin-only', async ({ page }) => {
     const errors = collectPageErrors(page);
 
-    await page.goto('/co2e?view=organisation');
-    await expect(page.getByText('CO₂e by organisation')).toBeVisible();
+    await page.goto('/impact?view=organisation');
+    await expect(page.getByText('Impact by organisation')).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Northwind Ltd' })).toBeVisible();
 
-    await page.goto('/co2e?view=user');
-    await expect(page.getByText('CO₂e by user')).toBeVisible();
+    await page.goto('/impact?view=user');
+    await expect(page.getByText('Impact by user')).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Ada Lovelace' })).toBeVisible();
 
-    await page.goto('/co2e?view=serial');
+    await page.goto('/impact?view=serial');
     await expect(page.getByText('CO₂e by Serial Number')).toBeVisible();
     await expect(page.getByText('Serial-level CO₂ stats are available for admin users.')).toBeVisible();
 
@@ -192,7 +192,7 @@ test.describe('embed CO2e dashboard', () => {
     });
     await mockImpact(page);
 
-    await page.goto('/co2e');
+    await page.goto('/impact');
 
     await expect(page.getByRole('combobox').filter({ hasText: 'All clients' })).toBeVisible();
     await expect(page.getByText(/Revenue share/i)).toHaveCount(0);

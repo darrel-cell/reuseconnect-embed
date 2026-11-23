@@ -64,7 +64,7 @@ const TITLES: Array<[pattern: string, title: string]> = [
 
   // Everything else
   ['/dashboard', 'Dashboard'],
-  ['/co2e', 'CO₂e Dashboard'],
+  ['/impact', 'Impact Overview'],
   ['/clients', 'Client Management'],
   ['/sites', 'Site Management'],
   ['/users', 'User Management'],
@@ -76,21 +76,21 @@ const TITLES: Array<[pattern: string, title: string]> = [
   ['/settings', 'Settings'],
 ];
 
-const CO2_VIEW_TITLES: Record<string, string> = {
-  organisation: 'CO₂e by Organisation',
-  user: 'CO₂e by User',
+const IMPACT_VIEW_TITLES: Record<string, string> = {
+  organisation: 'Impact by Organisation',
+  user: 'Impact by User',
   serial: 'CO₂e by Serial Number',
 };
 
 const SUFFIX = 'ReuseConnect';
 
 /**
- * Sticky AppLayout header title for a pathname (+ optional search for CO₂e views).
+ * Sticky AppLayout header title for a pathname (+ optional search for impact views).
  */
 export function chromeTitleForPath(pathname: string, search = ''): string {
-  if (pathname === '/co2e') {
+  if (pathname === '/impact') {
     const view = new URLSearchParams(search).get('view');
-    if (view && CO2_VIEW_TITLES[view]) return CO2_VIEW_TITLES[view];
+    if (view && IMPACT_VIEW_TITLES[view]) return IMPACT_VIEW_TITLES[view];
   }
 
   for (const [pattern, title] of TITLES) {

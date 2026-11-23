@@ -82,7 +82,7 @@ export function CO2eOverview() {
             )}
           </div>
           <Button variant="glass" size="sm" asChild className="text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground/10">
-            <Link to="/co2e" className="gap-1 group relative bg-white/10 backdrop-blur-sm text-foreground hover:bg-white/20 hover:border-white/50 hover:shadow-lg hover:shadow-accent/20 transition-all duration-300 ease-out active:scale-[0.98]">
+            <Link to="/impact" className="gap-1 group relative bg-white/10 backdrop-blur-sm text-foreground hover:bg-white/20 hover:border-white/50 hover:shadow-lg hover:shadow-accent/20 transition-all duration-300 ease-out active:scale-[0.98]">
               Full Report <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"/>
             </Link>
           </Button>

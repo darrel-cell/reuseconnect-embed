@@ -52,7 +52,7 @@ type NavCategoryId =
   | "organization"
   | "warehouse"
   | "documents"
-  | "co2";
+  | "impact";
 
 type NavItem = {
   title: string;
@@ -71,7 +71,7 @@ const NAV_CATEGORIES: { id: NavCategoryId; label: string; icon: LucideIcon }[] =
   { id: "organization", label: "Organization", icon: Building2 },
   { id: "warehouse", label: "Warehouse", icon: Package },
   { id: "documents", label: "Documents", icon: FileText },
-  { id: "co2", label: "CO2 Dashboard", icon: Leaf },
+  { id: "impact", label: "Impact", icon: Leaf },
 ];
 
 const readCategoryState = (): Record<string, boolean> => {
@@ -101,10 +101,10 @@ const getMainNavItems = (role: string): NavItem[] => {
     { title: "Sites", url: "/sites", icon: MapPin, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "organization" },
     { title: "Inventory", url: "/inventory", icon: Boxes, roles: ['admin', 'head_of_operation', 'client'], category: "warehouse" },
     { title: "Documents", url: "/documents", icon: FolderOpen, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "documents" },
-    { title: "CO₂e Overview", url: "/co2e", icon: ChartPie, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "co2" },
-    { title: "Organisation", url: "/co2e?view=organisation", icon: Landmark, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "co2" },
-    { title: "User", url: "/co2e?view=user", icon: User, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "co2" },
-    { title: "Serial Number", url: "/co2e?view=serial", icon: ScanBarcode, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "co2" },
+    { title: "Impact Overview", url: "/impact", icon: ChartPie, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "impact" },
+    { title: "Impact by Organisation", url: "/impact?view=organisation", icon: Landmark, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "impact" },
+    { title: "Impact by User", url: "/impact?view=user", icon: User, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "impact" },
+    { title: "CO₂e by Serial Number", url: "/impact?view=serial", icon: ScanBarcode, roles: ['admin', 'head_of_operation', 'client', 'partner'], category: "impact" },
   ];
 
   return baseItems.filter(item => item.roles.includes(role));

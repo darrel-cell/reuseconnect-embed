@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TenantThemeProvider } from "@/contexts/TenantThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -44,6 +44,13 @@ const Settings = lazy(() => import("./pages/app/Settings"));
 const Profile = lazy(() => import("./pages/app/Profile"));
 
 const queryClient = new QueryClient();
+
+/** Preserve query string when sending old /co2e bookmarks to /impact. */
+function RedirectCo2eToImpact() {
+  const [searchParams] = useSearchParams();
+  const qs = searchParams.toString();
+  return <Navigate to={qs ? `/impact?${qs}` : "/impact"} replace />;
+}
 
 const EmbedPortalUser = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute allowedRoles={['client', 'partner']}>{children}</ProtectedRoute>
@@ -95,7 +102,8 @@ const App = () => (
                   <Route path="/bookings/:id/certificates" element={<BookingCertificates />} />
                   <Route path="/bookings/:id/grading" element={<BookingGradingReport />} />
                   <Route path="/bookings/:id/summary" element={<BookingSummary />} />
-                  <Route path="/co2e" element={<CO2eDashboard />} />
+                  <Route path="/impact" element={<CO2eDashboard />} />
+                  <Route path="/co2e" element={<RedirectCo2eToImpact />} />
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/sites" element={<Sites />} />
                   <Route path="/inventory" element={<Inventory />} />

@@ -1,4 +1,4 @@
-// CO2e by organisation or by person: the dashboard's environmental figures (RTG's
+// Impact by organisation or by person: the dashboard's environmental figures (RTG's
 // method, from graded stock), split up. The rows add up to the overview's totals.
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -16,14 +16,14 @@ const isPageSize = (value: string): value is PageSize => value === "50" || value
 
 const COPY = {
   organisation: {
-    title: "CO₂e by organisation",
+    title: "Impact by organisation",
     filterLabel: "Filter organisation",
     all: "All organisations",
     nameHeader: "Organisation",
     empty: "No graded stock from any organisation in this period.",
   },
   person: {
-    title: "CO₂e by user",
+    title: "Impact by user",
     filterLabel: "Filter user",
     all: "All users",
     nameHeader: "User (employee or client contact)",

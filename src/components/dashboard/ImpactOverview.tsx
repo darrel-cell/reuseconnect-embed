@@ -1,4 +1,4 @@
-// The CO2e Overview: one set of filters (client, period) for every impact section.
+// The Impact Overview: one set of filters (client, period) for every impact section.
 // Every figure comes from graded stock by RTG's method, job buyback and costs, or donations RTG recorded.
 import { useState } from "react";
 import { useAuth } from "@/contexts/auth-context";

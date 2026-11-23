@@ -1012,7 +1012,7 @@ export default function Home() {
               <Link to={isAuthenticated ? "/documents" : "/login"} className="hover:text-foreground transition-colors">
                 Documents
               </Link>
-              <Link to={isAuthenticated ? "/co2e" : "/login"} className="hover:text-foreground transition-colors">
+              <Link to={isAuthenticated ? "/impact" : "/login"} className="hover:text-foreground transition-colors">
                 CO₂e
               </Link>
               <a href="#trust" className="hover:text-foreground transition-colors">
