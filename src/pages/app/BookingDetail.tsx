@@ -32,6 +32,7 @@ import { getStatusLabelExtended, getStatusColor, getSanitisedTimelineStep } from
 import type { BookingLifecycleStatus } from "@/types/booking-lifecycle";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
+import { BookingEnvironmentalSummaryRows } from "@/components/environmental/BookingEnvironmentalPanel";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { canDriverEditJob } from "@/utils/job-helpers";
@@ -1620,6 +1621,10 @@ const BookingDetail = () => {
                   {(booking.estimatedCO2e / 1000).toFixed(1)}t
                 </p>
               </div>
+              {/* A new starter booking delivers equipment, so it has nothing to grade. */}
+              {id && !(booking.bookingType === 'jml' && booking.jmlSubType === 'new_starter') && (
+                <BookingEnvironmentalSummaryRows bookingId={id} bookingStatus={booking.status} />
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Estimated Buyback Value</p>
                 <p className="text-2xl font-bold">£{booking.estimatedBuyback.toLocaleString()}</p>

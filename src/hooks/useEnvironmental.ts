@@ -13,3 +13,13 @@ export function useEnvironmentalOverview(clientId: string | null, months: number
     refetchOnWindowFocus: false,
   });
 }
+
+export function useBookingEnvironmentalImpact(bookingId: string | null) {
+  return useQuery({
+    queryKey: [...KEY, 'booking', bookingId],
+    queryFn: () => environmentalService.getBookingImpact(bookingId!),
+    enabled: !!bookingId,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}

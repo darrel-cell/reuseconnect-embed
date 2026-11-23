@@ -49,6 +49,7 @@ import { WorkflowTimeline } from "@/components/jobs/WorkflowTimeline";
 import { JobStatusBadge } from "@/components/jobs/JobStatusBadge";
 import { BookingTypeBadge } from "@/components/bookings/BookingTypeBadge";
 import { BuybackEstimateDisclaimer } from "@/components/booking/BuybackEstimateDisclaimer";
+import { BookingEnvironmentalSummaryRows } from "@/components/environmental/BookingEnvironmentalPanel";
 import { clientSettlement } from "@/lib/client-settlement";
 import { co2eEquivalencies, getWorkflowStatusLabel } from "@/lib/constants";
 import type { Evidence, WorkflowStatus } from "@/types/jobs";
@@ -675,27 +676,39 @@ const JobDetail = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">CO₂e Avoided</p>
-                  <p className="text-2xl font-bold text-success">
-                    {(job.co2eSaved / 1000).toFixed(2)}t
-                  </p>
+                {/* CO₂e: avoided − travel = net */}
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">CO₂e Avoided</p>
+                    <p className="text-2xl font-bold text-success">
+                      {(job.co2eSaved / 1000).toFixed(2)}t
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Travel Emissions</p>
+                    <p className="text-lg font-semibold text-destructive">
+                      -{job.travelEmissions}kg
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t">
+                    <p className="text-sm text-muted-foreground">Net Benefit</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {(netCO2e / 1000).toFixed(2)}t
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ≈ {co2eEquivalencies.treesPlanted(netCO2e)} trees planted
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Travel Emissions</p>
-                  <p className="text-lg font-semibold text-destructive">
-                    -{job.travelEmissions}kg
-                  </p>
-                </div>
-                <div className="pt-3 border-t">
-                  <p className="text-sm text-muted-foreground">Net Benefit</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {(netCO2e / 1000).toFixed(2)}t
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    ≈ {co2eEquivalencies.treesPlanted(netCO2e)} trees planted
-                  </p>
-                </div>
+                {/* Water & minerals: graded RTG figures, separate from the CO₂e net */}
+                {job.bookingId && (
+                  <div className="space-y-4 border-t pt-4">
+                    <BookingEnvironmentalSummaryRows
+                      bookingId={job.bookingId}
+                      bookingStatus={booking?.status ?? "pending"}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -98,6 +98,10 @@ class EnvironmentalService {
     const query = new URLSearchParams({ months: String(months), ...(clientId ? { clientId } : {}) });
     return apiClient.get<OverviewImpact>(`/environmental/overview?${query}`);
   }
+
+  getBookingImpact(bookingId: string): Promise<BookingImpact> {
+    return apiClient.get<BookingImpact>(`/environmental/bookings/${bookingId}/impact`);
+  }
 }
 
 export const environmentalService = new EnvironmentalService();
